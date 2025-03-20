@@ -1,0 +1,17 @@
+{
+  "name": "types-mediawiki-api",
+  "version": "2.0.0",
+  "description": "TypeScript definitions for MediaWiki API parameters",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": ""
+  },
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wikimedia-gadgets/types-mediawiki-api"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}
