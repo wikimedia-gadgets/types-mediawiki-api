@@ -11,6 +11,10 @@
     "type": "git",
     "url": "https://github.com/wikimedia-gadgets/types-mediawiki-api"
   },
+  "keywords": [
+    "mediawiki",
+    "types"
+  ],
   "files": [
     "index.d.ts"
   ],
