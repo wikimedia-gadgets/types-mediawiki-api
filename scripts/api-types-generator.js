@@ -68,7 +68,7 @@ const actionsTypes = data.paraminfo.modules
                         param.type,
                         module.prefix,
                         param.name,
-                        param.multi
+                        param.multi,
                     );
                     return `${name}?: ${type}`;
                 })
@@ -89,7 +89,7 @@ const queryTypes = queryApiData.paraminfo.modules
                         param.type,
                         module.prefix,
                         param.name,
-                        param.multi
+                        param.multi,
                     );
                     return `${name}?: ${type}`;
                 })

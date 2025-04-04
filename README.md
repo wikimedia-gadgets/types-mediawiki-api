@@ -9,6 +9,7 @@ This package provides typings for API request parameters for the [MediaWiki Acti
 ## Usage
 
 Installation:
+
 ```bash
 npm i types-mediawiki-api
 ```
