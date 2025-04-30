@@ -54,7 +54,7 @@ function processParamInfo(type, prefix, name, multi) {
 function getInterfaceName(module) {
     return module.classname
         .replace(/\\/g, "")
-        .replace(/^MediaWikiExtensions?/, "")
+        .replace(/^(?:MediaWiki|Extensions?)+/, "")
         .replace(/ApiApi/g, "Api");
 }
 
