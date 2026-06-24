@@ -2327,7 +2327,7 @@ export interface ApiFeedRecentChangesParams extends ApiParams {
     /**
      * Filter by tag.
      */
-    tagfilter?: string | string[];
+    tagfilter?: string;
     /**
      * All edits except ones tagged with the selected ones.
      */
@@ -6580,51 +6580,7 @@ export interface ApiTagParams extends ApiParams {
     /**
      * Tags to add. Only manually defined tags can be added.
      */
-    add?: OneOrMore<
-        | "AFCH"
-        | "AI-generated source"
-        | "AWB"
-        | "Addition of protection template to non-protected page"
-        | "AntiVandal script"
-        | "CVPI"
-        | "CW-English-Converter"
-        | "Deputy"
-        | "HotCat"
-        | "JWB"
-        | "Newcomer task"
-        | "New user adding protection template"
-        | "ProveIt edit"
-        | "RedWarn"
-        | "RfC"
-        | "Ultraviolet"
-        | "WPCleaner"
-        | "WikiLoop Battlefield"
-        | "WikiShield script"
-        | "XFDC"
-        | "bot trial"
-        | "changing time or duration"
-        | "convenient-discussions"
-        | "editProtectedHelper"
-        | "excessive whitespace"
-        | "fixed lint errors"
-        | "huggle"
-        | "invalid-timedtext-edit"
-        | "large non-free file"
-        | "massmove"
-        | "moveToDraft"
-        | "new user moving page out of userspace"
-        | "ooze"
-        | "pageswap"
-        | "possible birth or death date change"
-        | "possible formatting issues"
-        | "pronoun-change"
-        | "rapid date format changes"
-        | "self-published-blog"
-        | "self-published source"
-        | "shortdesc helper"
-        | "talk banner shell conversion"
-        | "twinkle"
-    >;
+    add?: string | string[];
     /**
      * Tags to remove. Only tags that are either manually defined or completely undefined can be removed.
      */

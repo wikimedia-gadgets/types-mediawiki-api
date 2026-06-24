@@ -2,6 +2,17 @@
 // and copy the console log output
 
 /**
+ * If an enum parameter contains any of the following value subsets, it is expected to be extensible by
+ * a MediaWiki configuration or extension, and should be generalized back to a string.
+ */
+const GENERALIZE_ENUM_TYPE_CONTAINING = [
+    // tags
+    ["AWB", "WPCleaner"],
+    // wikis
+    ["enwiki", "zhwiki"],
+].map((l) => new Set(l));
+
+/**
  * JSdoc declaration, associated to something.
  */
 class JSdoc {
@@ -154,32 +165,29 @@ const literalToJSdoc = (lit, multi) => {
 
 function processParamInfo(prefix, param) {
     let type = param.type;
+
+    // Convert the API type to a TypeScript type
+    // Avoid being over-specific
+    if (Array.isArray(type)) {
+        const enumSet = new Set(type);
+        if (GENERALIZE_ENUM_TYPE_CONTAINING.some((s) => s.isSubsetOf(enumSet))) {
+            type = "string";
+        }
+    } else if (type === "text" || type === "title" || type === "user" || type === "raw") {
+        type = "string";
+    } else if (type === "integer") {
+        type = "number";
+    }
+
     if (Array.isArray(type)) {
         type = type.map((e) => `'${e}'`).join(" | ");
         if (param.multi) {
-            // can be single item or array of items
             type = `OneOrMore<${type}>`;
         }
     } else {
-        // API uses type=text for long string fields
-        if (type === "text" || type === "title" || type === "user" || type === "raw") {
-            type = "string";
-        } else if (type === "integer") {
-            type = "number";
-        }
         if (param.multi) {
             type = `${type} | ${type}[]`;
         }
-    }
-
-    // Avoid being over-specific
-    if (
-        param.name === "tags" ||
-        param.name === "tagfilter" || // edit tags, used in core
-        param.name === "wikis" || // used by Extension:Echo APIs
-        param.name === "site" // gusite used by ApiQueryGlobalUsage
-    ) {
-        type = "string | string[]";
     }
 
     let name = prefix + param.name;
