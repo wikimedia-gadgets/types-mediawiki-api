@@ -303,6 +303,8 @@ export interface CategoryTreeApiCategoryTreeParams extends ApiParams {
  * Fetch a centralauthtoken for making an authenticated request to an attached wiki.
  *
  * Returns a token that can be use to authenticate API requests on other wikis. For action API requests, put it in the `centralauthtoken` GET parameter. For REST API requests, add an `Authorization: CentralAuthToken {token}` header. In MediaWiki frontend logic, you can use the `mediawiki.ForeignApi` ResourceLoader module.
+ *
+ * This wiki is configured to return a JSON Web Token from this API.
  */
 export interface CentralAuthApiCentralAuthTokenParams extends ApiParams {}
 
@@ -510,13 +512,6 @@ export interface CirrusSearchApiConfigDumpParams extends ApiParams {
 }
 
 /**
- * Dump of CirrusSearch mapping for this wiki.
- *
- * @private
- */
-export interface CirrusSearchApiMappingDumpParams extends ApiParams {}
-
-/**
  * Dump of CirrusSearch profiles for this wiki.
  *
  * @private
@@ -529,11 +524,20 @@ export interface CirrusSearchApiProfilesDumpParams extends ApiParams {
 }
 
 /**
- * Dump of CirrusSearch settings for this wiki.
+ * Dump of CirrusSearch schema (settings and mappings) for this wiki.
  *
  * @private
  */
-export interface CirrusSearchApiSettingsDumpParams extends ApiParams {}
+export interface CirrusSearchApiSchemaDumpParams extends ApiParams {
+    /**
+     * Whether to build the schema from code (true) or fetch from live cluster (false).
+     */
+    build?: boolean;
+    /**
+     * List of OpenSearch/Elasticsearch plugins available on the target cluster. Only used when build=true. If not provided, plugins will be detected from the connected cluster.
+     */
+    plugins?: string | string[];
+}
 
 /**
  * Clears the `hasmsg` flag for the current user.
@@ -588,11 +592,35 @@ export interface ApiClientLoginParams extends ApiParams {
      */
     logincontinue?: boolean;
     /**
+     * Instead of logging in, reauthenticate for getting temporary access to a security-sensitive operation. This must be done when already logged in, using the fields suplied by `action=query&meta=authmanagerinfo` when called with the `amireauthenticate` parameter. The value of the parameter should be the same as that of `amireauthenticate`.
+     */
+    loginreauthenticate?: string;
+    /**
      * A "login" token retrieved from {@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Btokens action=query&meta=tokens}
      *
      * Sensitive parameter.
      */
     logintoken?: string;
+}
+
+/**
+ * Check for validation errors in the given content
+ *
+ * @private
+ */
+export interface CodeMirrorApiCodeMirrorValidateParams extends ApiParams {
+    /**
+     * The text content to validate
+     */
+    content?: string;
+    /**
+     * Content model
+     */
+    contentmodel?: "Scribunto" | "javascript" | "sanitized-css";
+    /**
+     * Title of page the content belongs to.
+     */
+    title?: string;
 }
 
 /**
@@ -658,6 +686,7 @@ export interface CommunityConfigurationApiEditParams extends ApiParams {
         | "GrowthSuggestedEdits"
         | "HelpPanel"
         | "Mentorship"
+        | "ReportIncident"
         | "TemplateData-FeaturedTemplates";
     /**
      * The current content of the provider will be replaced with this one. Use JSON to serialize the new content.
@@ -1506,9 +1535,19 @@ export interface DiscussionToolsApiDiscussionToolsPageInfoParams extends ApiPara
      */
     prop?: OneOrMore<"threaditemshtml" | "transcludedfrom">;
     /**
-     * Exclude user signatures from the comments (when using `prop=threaditemshtml`).
+     * Flags to alter the output when using `prop=threaditemshtml`.
+     *
+     * - **noreplies**: Don't include the full reply tree, just provide the top-level headings (when using `prop=threaditemshtml`).
+     * - **activity**: Include extra activity data about the oldest and latest replies (when using `prop=threaditemshtml`).
+     * - **excludesignatures**: Exclude user signatures from the comments (when using `prop=threaditemshtml`).
      */
-    excludesignatures?: boolean;
+    threaditemsflags?: OneOrMore<"activity" | "excludesignatures" | "noreplies">;
+    /**
+     * Exclude user signatures from the comments (when using `prop=threaditemshtml`).
+     *
+     * @deprecated
+     */
+    excludesignatures?: string;
 }
 
 /**
@@ -1809,7 +1848,7 @@ export interface ApiEditPageParams extends ApiParams {
      */
     recreate?: boolean;
     /**
-     * Don't edit the page if it exists already.
+     * Don't edit the page if it already exists.
      */
     createonly?: boolean;
     /**
@@ -1930,6 +1969,14 @@ export interface ApiEditPageParams extends ApiParams {
      * CAPTCHA ID from previous request
      */
     captchaid?: string;
+    /**
+     * Whether the shown hCaptcha CAPTCHA was force shown, such as by an AbuseFilter extension consequence (and so used a more restrictive sitekey). Set this if the JS configuration variable with the same name is true or if the first attempt to use this API returned a 'forcecaptcha' error with a specified sitekey.
+     */
+    wgConfirmEditForceShowCaptcha?: boolean;
+    /**
+     * Name of the editor interface used (such as MobileFrontend-SourceEditor)
+     */
+    editorinterface?: string;
     /**
      * Automatically subscribe the user to any new talk page threads created by the edit. Use 'yes' or 'no' to override a user's preference (the default).
      *
@@ -2442,6 +2489,10 @@ export interface GlobalBlockingApiGlobalBlockParams extends ApiParams {
      */
     "enable-autoblock"?: boolean;
     /**
+     * Specify this if the global block should prevent the user from sending email.
+     */
+    "block-email"?: boolean;
+    /**
      * Specify this if the existing block on the target should be modified
      */
     "modify"?: boolean;
@@ -2492,6 +2543,7 @@ export interface GlobalPreferencesApiGlobalPreferenceOverridesParams extends Api
      */
     resetkinds?: OneOrMore<
         | "all"
+        | "local-exception"
         | "registered"
         | "registered-checkmatrix"
         | "registered-multiselect"
@@ -2538,6 +2590,7 @@ export interface GlobalPreferencesApiGlobalPreferencesParams extends ApiParams {
      */
     resetkinds?: OneOrMore<
         | "all"
+        | "local-exception"
         | "registered"
         | "registered-checkmatrix"
         | "registered-multiselect"
@@ -2598,8 +2651,8 @@ export interface CentralAuthApiGlobalUserRightsParams extends ApiParams {
         | "global-rollbacker"
         | "global-sysop"
         | "global-temporary-account-viewer"
+        | "local-bot"
         | "new-wikis-importer"
-        | "oathauth-tester"
         | "ombuds"
         | "recursive-export"
         | "staff"
@@ -2633,8 +2686,8 @@ export interface CentralAuthApiGlobalUserRightsParams extends ApiParams {
         | "global-rollbacker"
         | "global-sysop"
         | "global-temporary-account-viewer"
+        | "local-bot"
         | "new-wikis-importer"
-        | "oathauth-tester"
         | "ombuds"
         | "recursive-export"
         | "staff"
@@ -3259,6 +3312,10 @@ export interface ApiLoginParams extends ApiParams {
  */
 export interface ApiLogoutParams extends ApiParams {
     /**
+     * Log the user out from all their devices (rather than their current device only).
+     */
+    global?: boolean;
+    /**
      * A "csrf" token retrieved from {@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Btokens action=query&meta=tokens}
      *
      * Sensitive parameter.
@@ -3457,28 +3514,6 @@ export interface ApiMoveParams extends ApiParams {
 export interface ApiFormatNoneParams extends ApiParams {}
 
 /**
- * Validate a two-factor authentication (OATH) token.
- *
- * @private
- */
-export interface OATHAuthApiModuleApiOATHValidateParams extends ApiParams {
-    /**
-     * User to validate token for. Defaults to the current user.
-     */
-    user?: string;
-    /**
-     * JSON encoded data expected by the module currently activated for the user being authenticated
-     */
-    data?: string;
-    /**
-     * A "csrf" token retrieved from {@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Btokens action=query&meta=tokens}
-     *
-     * Sensitive parameter.
-     */
-    token?: string;
-}
-
-/**
  * Search the wiki using the OpenSearch protocol.
  *
  * @see https://www.mediawiki.org/wiki/Special:MyLanguage/API:Opensearch
@@ -3558,6 +3593,7 @@ export interface ApiOptionsParams extends ApiParams {
      */
     resetkinds?: OneOrMore<
         | "all"
+        | "local-exception"
         | "registered"
         | "registered-checkmatrix"
         | "registered-multiselect"
@@ -4056,6 +4092,7 @@ export interface ApiParamInfoParams extends ApiParams {
         | "globalrenamestatus"
         | "globalusage"
         | "globaluserinfo"
+        | "globalusers"
         | "growthimagesuggestiondata"
         | "growthmenteestatus"
         | "growthmentorlist"
@@ -4085,7 +4122,6 @@ export interface ApiParamInfoParams extends ApiParams {
         | "mostviewed"
         | "mystashedfiles"
         | "notifications"
-        | "oath"
         | "oldreviewedpages"
         | "ores"
         | "pageassessments"
@@ -4146,9 +4182,7 @@ export interface ApiParamInfoParams extends ApiParams {
      *
      * @deprecated
      */
-    formatmodules?: OneOrMore<
-        "json" | "jsonfm" | "none" | "php" | "phpfm" | "rawfm" | "xml" | "xmlfm"
-    >;
+    formatmodules?: OneOrMore<"json" | "jsonfm" | "none" | "rawfm" | "xml" | "xmlfm">;
 }
 
 /**
@@ -4208,8 +4242,8 @@ export interface ApiParseParams extends ApiParams {
      * - **templates**: Gives the templates in the parsed wikitext.
      * - **images**: Gives the images in the parsed wikitext.
      * - **externallinks**: Gives the external links in the parsed wikitext.
-     * - **sections**: Deprecated. Gives the sections in the parsed wikitext.
-     * - **tocdata**: Gives the table of contents information in the parsed wikitext.
+     * - **sections**: Deprecated. `prop=sections` has been deprecated. Please use `prop=tocdata` instead. Gives the sections in the parsed wikitext.
+     * - **tocdata**: Gives the table of contents information in the parsed wikitext. See {@link https://www.mediawiki.org/wiki/API:Parsing_wikitext/TOCData mw:API:Parsing_wikitext/TOCData} for schema.
      * - **revid**: Adds the revision ID of the parsed page.
      * - **displaytitle**: Adds the title of the parsed wikitext.
      * - **subtitle**: Adds the page subtitle for the parsed page.
@@ -4226,7 +4260,7 @@ export interface ApiParseParams extends ApiParams {
      * - **parsetree**: The XML parse tree of revision content (requires content model `wikitext`)
      * - **parsewarnings**: Gives the warnings that occurred while parsing content (as wikitext).
      * - **parsewarningshtml**: Gives the warnings that occurred while parsing content (as HTML).
-     * - **headitems**: Deprecated. Gives items to put in the `<head>` of the page.
+     * - **headitems**: Deprecated. `prop=headitems` is deprecated since MediaWiki 1.28. Use `prop=headhtml` when creating new HTML documents, or `prop=modules|jsconfigvars` when updating a document client-side. Gives items to put in the `<head>` of the page.
      *
      * Defaults to `text`, `langlinks`, `categories`, `links`, `templates`, `images`, `externallinks`, `sections`, `tocdata`, `revid`, `displaytitle`, `iwlinks`, `properties`, and `parsewarnings`.
      */
@@ -4270,7 +4304,7 @@ export interface ApiParseParams extends ApiParams {
      */
     usearticle?: boolean;
     /**
-     * Generate HTML conforming to the {@link https://www.mediawiki.org/wiki/Specs/HTML MediaWiki DOM spec} using {@link https://www.mediawiki.org/wiki/Parsoid Parsoid}.  Replaced by `parser=parsoid`.
+     * Generate HTML conforming to the {@link https://www.mediawiki.org/wiki/Specs/HTML MediaWiki DOM spec} using {@link https://www.mediawiki.org/wiki/Parsoid Parsoid}. Replaced by `parser=parsoid`.
      *
      * @deprecated
      */
@@ -4507,46 +4541,6 @@ export interface ApiPatrolParams extends ApiParams {
 }
 
 /**
- * Output data in serialized PHP format.
- *
- * @see https://www.mediawiki.org/wiki/Special:MyLanguage/API:Data_formats
- */
-export interface ApiFormatPhpParams extends ApiParams {
-    /**
-     * Output formatting
-     *
-     * - **1**: Backwards-compatible format (XML-style booleans, `*` keys for content nodes, etc.).
-     * - **2**: Modern format.
-     * - **latest**: Use the latest format (currently `2`), may change without warning.
-     *
-     * Defaults to `1`.
-     */
-    formatversion?: "1" | "2" | "latest";
-}
-
-/**
- * Output data in serialized PHP format (pretty-print in HTML).
- *
- * @see https://www.mediawiki.org/wiki/Special:MyLanguage/API:Data_formats
- */
-export interface ApiFormatPhpParams extends ApiParams {
-    /**
-     * Return the pretty-printed HTML and associated ResourceLoader modules as a JSON object.
-     */
-    wrappedhtml?: boolean;
-    /**
-     * Output formatting
-     *
-     * - **1**: Backwards-compatible format (XML-style booleans, `*` keys for content nodes, etc.).
-     * - **2**: Modern format.
-     * - **latest**: Use the latest format (currently `2`), may change without warning.
-     *
-     * Defaults to `1`.
-     */
-    formatversion?: "1" | "2" | "latest";
-}
-
-/**
  * Change the protection level of a page.
  *
  * @see https://www.mediawiki.org/wiki/Special:MyLanguage/API:Protect
@@ -4761,7 +4755,7 @@ export interface ApiQueryParams extends ApiParams {
      *
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bcategories categories}**: List all categories the pages belong to.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bcategoryinfo categoryinfo}**: Returns information about the given categories.
-     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bcontributors contributors}**: Get the list of logged-in contributors (including temporary users) and the count of logged-out contributors to a page.
+     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bcontributors contributors}**: Get the list of registered contributors (including temporary users) and the count of anonymous contributors to a page.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bcoordinates coordinates}**: Returns coordinates of the given pages.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bdeletedrevisions deletedrevisions}**: Get deleted revision information.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bduplicatefiles duplicatefiles}**: List all files that are duplicates of the given files based on hash values.
@@ -4880,6 +4874,7 @@ export interface ApiQueryParams extends ApiParams {
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bglobalallusers globalallusers}**: Enumerate all global users.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bglobalblocks globalblocks}**: List all globally blocked IP addresses.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bglobalgroups globalgroups}**: Enumerate all global groups.
+     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bglobalusers globalusers}**: Get information about a list of global users.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bgrowthmentorlist growthmentorlist}**: List all the mentors
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bgrowthmentormentee growthmentormentee}**: Get all mentees assigned to a given mentor
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bgrowthstarredmentees growthstarredmentees}**: Get list of mentees starred by the currently logged in mentor
@@ -4911,7 +4906,7 @@ export interface ApiQueryParams extends ApiParams {
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bwblistentityusage wblistentityusage}**: Returns all pages that use the given entity IDs.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bwikisets wikisets}**: Enumerate all wiki sets.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bcheckuser checkuser}**: Deprecated. **This API has been disabled by the site administrators. Querying the API will return no data.** Check which IP addresses are used by a given username or which usernames are used by a given IP address.
-     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bdeletedrevs deletedrevs}**: Deprecated. List deleted revisions.
+     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bdeletedrevs deletedrevs}**: Deprecated. `list=deletedrevs` has been deprecated. Please use `prop=deletedrevisions` or `list=alldeletedrevisions` instead. List deleted revisions.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bgrowthtasks growthtasks}**: Internal. Get task recommendations suitable for newcomers.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Breadinglistentries readinglistentries}**: Internal. List the pages of a certain list.
      */
@@ -4951,6 +4946,7 @@ export interface ApiQueryParams extends ApiParams {
         | "globalallusers"
         | "globalblocks"
         | "globalgroups"
+        | "globalusers"
         | "growthmentorlist"
         | "growthmentormentee"
         | "growthstarredmentees"
@@ -5014,7 +5010,6 @@ export interface ApiQueryParams extends ApiParams {
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bcheckuserformattedblockinfo checkuserformattedblockinfo}**: Internal. Return formatted block details for sitewide blocks affecting the current user.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bcxdeletedtranslations cxdeletedtranslations}**: Internal. Get the number of your published translations that were deleted.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bgrowthnextsuggestedtasktype growthnextsuggestedtasktype}**: Internal. Get a suggested task type for a user to try next.
-     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Boath oath}**: Internal. Check to see if two-factor authentication (OATH) is enabled for a user.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Breadinglists readinglists}**: Internal. List or filter the user's reading lists and show metadata about them.
      */
     meta?: OneOrMore<
@@ -5043,7 +5038,6 @@ export interface ApiQueryParams extends ApiParams {
         | "checkuserformattedblockinfo"
         | "cxdeletedtranslations"
         | "growthnextsuggestedtasktype"
-        | "oath"
         | "readinglists"
     >;
     /**
@@ -5694,6 +5688,7 @@ export interface ApiSetPageLanguageParams extends ApiParams {
         | "aeb-latn"
         | "af"
         | "aig"
+        | "ak"
         | "aln"
         | "alt"
         | "am"
@@ -5826,6 +5821,7 @@ export interface ApiSetPageLanguageParams extends ApiParams {
         | "frc"
         | "frp"
         | "frr"
+        | "frs"
         | "fur"
         | "fvr"
         | "fy"
@@ -5893,6 +5889,7 @@ export interface ApiSetPageLanguageParams extends ApiParams {
         | "inh"
         | "io"
         | "is"
+        | "isv"
         | "isv-cyrl"
         | "isv-latn"
         | "it"
@@ -5964,6 +5961,7 @@ export interface ApiSetPageLanguageParams extends ApiParams {
         | "liv"
         | "ljp"
         | "lki"
+        | "lkt"
         | "lld"
         | "lmo"
         | "ln"
@@ -6584,10 +6582,12 @@ export interface ApiTagParams extends ApiParams {
      */
     add?: OneOrMore<
         | "AFCH"
+        | "AI-generated source"
         | "AWB"
         | "Addition of protection template to non-protected page"
         | "AntiVandal script"
         | "CVPI"
+        | "CW-English-Converter"
         | "Deputy"
         | "HotCat"
         | "JWB"
@@ -6595,10 +6595,12 @@ export interface ApiTagParams extends ApiParams {
         | "New user adding protection template"
         | "ProveIt edit"
         | "RedWarn"
+        | "RfC"
         | "Ultraviolet"
         | "WPCleaner"
         | "WikiLoop Battlefield"
         | "WikiShield script"
+        | "XFDC"
         | "bot trial"
         | "changing time or duration"
         | "convenient-discussions"
@@ -7402,11 +7404,11 @@ export interface VisualEditorApiVisualEditorEditParams extends ApiParams {
      */
     summary?: string;
     /**
-     * Captcha ID (when saving with a captcha response).
+     * CAPTCHA ID from previous request
      */
     captchaid?: string;
     /**
-     * Answer to the captcha (when saving with a captcha response).
+     * Answer to the CAPTCHA
      */
     captchaword?: string;
     /**
@@ -7461,6 +7463,10 @@ export interface VisualEditorApiVisualEditorEditParams extends ApiParams {
      */
     plugins?: string | string[];
     /**
+     * Whether the shown hCaptcha CAPTCHA was force shown, such as by an AbuseFilter extension consequence (and so used a more restrictive sitekey). Set this if the JS configuration variable with the same name is true or if the first attempt to use this API returned a 'forcecaptcha' error with a specified sitekey.
+     */
+    wgConfirmEditForceShowCaptcha?: boolean;
+    /**
      * Return parse output in a format suitable for mobile devices.
      */
     mobileformat?: boolean;
@@ -7482,6 +7488,10 @@ export interface ApiWatchParams extends ApiParams {
      * Expiry timestamp to be applied to all given pages. Omit this parameter entirely to leave any current expiries unchanged.
      */
     expiry?: expiry;
+    /**
+     * Label IDs to assign to the pages being watched. This will replace all existing labels on the pages with the ones specified.
+     */
+    labels?: number | number[];
     /**
      * If set the page will be unwatched rather than watched.
      */
@@ -7621,18 +7631,27 @@ export interface MobileFrontendApiWebappManifestParams extends ApiParams {}
 /**
  * API Module to communicate between server and client during registration/authentication process.
  */
-export interface WebAuthnApiWebAuthnParams extends ApiParams {
+export interface OATHAuthApiWebAuthnParams extends ApiParams {
     /**
      * Name of the requested function to be executed.
      *
      * - **getAuthInfo**: Authentication information.
      * - **getRegisterInfo**: Registration information.
+     * - **register**: Register a new WebAuthn credential for the current user.
      */
-    func?: "getAuthInfo" | "getRegisterInfo";
+    func?: "getAuthInfo" | "getRegisterInfo" | "register";
     /**
      * Whether the key being registered is in passkey mode. (Only for getRegisterInfo.)
      */
     passkeyMode?: boolean;
+    /**
+     * JSON-encoded WebAuthn credential response from the browser.
+     */
+    credential?: string;
+    /**
+     * Friendly name for the new credential.
+     */
+    friendlyname?: string;
 }
 
 /**
@@ -8866,6 +8885,7 @@ export interface ApiQueryAllUsersParams extends ApiQueryParams {
         | "autoreviewrestore"
         | "badcaptcha"
         | "badoath"
+        | "badoath-long"
         | "bigdelete"
         | "block"
         | "blockemail"
@@ -8899,7 +8919,9 @@ export interface ApiQueryAllUsersParams extends ApiQueryParams {
         | "createaccount"
         | "createpage"
         | "createpagemainns"
+        | "createpreviouslyrenamedaccount"
         | "createtalk"
+        | "createwithcontentmodel"
         | "delete"
         | "delete-redirect"
         | "deletechangetags"
@@ -8907,7 +8929,9 @@ export interface ApiQueryAllUsersParams extends ApiQueryParams {
         | "deletedtext"
         | "deletelogentry"
         | "deleterevision"
+        | "disableoath"
         | "echo-create"
+        | "echo-read-notifications"
         | "edit"
         | "editautopatrolprotected"
         | "editautoreviewprotected"
@@ -8941,7 +8965,7 @@ export interface ApiQueryAllUsersParams extends ApiQueryParams {
         | "flow-suppress"
         | "globalblock"
         | "globalblock-exempt"
-        | "globalblock-whitelist"
+        | "globalblock-local-status"
         | "globalgroupmembership"
         | "globalgrouppermissions"
         | "growthexperiments-apiqueryimagesuggestiondata"
@@ -8954,10 +8978,13 @@ export interface ApiQueryAllUsersParams extends ApiQueryParams {
         | "interwiki"
         | "ipblock-exempt"
         | "ipinfo"
+        | "ipinfo-ip-lookup"
+        | "ipinfo-view-arbitrary-ip"
         | "ipinfo-view-basic"
         | "ipinfo-view-full"
         | "ipinfo-view-log"
         | "linkpurge"
+        | "logout"
         | "mailpassword"
         | "manage-all-push-subscriptions"
         | "managechangetags"
@@ -8986,9 +9013,9 @@ export interface ApiQueryAllUsersParams extends ApiQueryParams {
         | "nominornewtalk"
         | "noratelimit"
         | "nuke"
-        | "oathauth-api-all"
         | "oathauth-disable-for-user"
         | "oathauth-enable"
+        | "oathauth-recover-for-user"
         | "oathauth-verify-user"
         | "oathauth-view-log"
         | "override-antispoof"
@@ -8999,13 +9026,16 @@ export interface ApiQueryAllUsersParams extends ApiQueryParams {
         | "pagetriage-tagging-action"
         | "patrol"
         | "patrolmarks"
+        | "post-hcaptcha-token"
         | "protect"
         | "purge"
         | "read"
+        | "recover-2fa"
         | "renameuser"
         | "renameuser-global"
         | "renderfile"
         | "renderfile-nonstandard"
+        | "reportincident"
         | "reupload"
         | "reupload-own"
         | "reupload-shared"
@@ -9017,7 +9047,6 @@ export interface ApiQueryAllUsersParams extends ApiQueryParams {
         | "securepoll-view-voter-pii"
         | "sendemail"
         | "setmentor"
-        | "sfsblock-bypass"
         | "siteadmin"
         | "skipcaptcha"
         | "spamblacklistlog"
@@ -9048,10 +9077,12 @@ export interface ApiQueryAllUsersParams extends ApiQueryParams {
         | "userrights"
         | "userrights-interwiki"
         | "validate"
+        | "verify-2fa"
         | "viewdeletedfile"
         | "viewmyprivateinfo"
         | "viewmywatchlist"
         | "viewsuppressed"
+        | "wikilambda-abstract-optin"
         | "wikimediaevents-hcaptcha-diff-logging"
     >;
     /**
@@ -9127,6 +9158,10 @@ export interface ApiQueryAuthManagerInfoParams extends ApiQueryParams {
         | "login-continue"
         | "remove"
         | "unlink";
+    /**
+     * Add requests needed to reauthenticate for a security-sensitive operation. Must be used with `amirequestsfor=login` and while in a logged-in session. The value of the parameter is the operation name, which can be found in the `reauthenticate` error returned when trying the operation that needs reauthentication.
+     */
+    amireauthenticate?: string;
     /**
      * Merge field information for all authentication requests into one array.
      */
@@ -9689,11 +9724,13 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconArticleSearch"
         | "cdxIconArticles"
         | "cdxIconArticlesSearch"
+        | "cdxIconAsterisk"
         | "cdxIconAttachment"
         | "cdxIconBell"
         | "cdxIconBellOutline"
         | "cdxIconBigger"
         | "cdxIconBlock"
+        | "cdxIconBlockOutline"
         | "cdxIconBold"
         | "cdxIconBook"
         | "cdxIconBookmark"
@@ -9705,6 +9742,10 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconCamera"
         | "cdxIconCancel"
         | "cdxIconChart"
+        | "cdxIconChartBar"
+        | "cdxIconChartLine"
+        | "cdxIconChartPie"
+        | "cdxIconChartScatter"
         | "cdxIconCheck"
         | "cdxIconCheckAll"
         | "cdxIconClear"
@@ -9717,6 +9758,7 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconCut"
         | "cdxIconDatabase"
         | "cdxIconDie"
+        | "cdxIconDiffs"
         | "cdxIconDoubleChevronEnd"
         | "cdxIconDoubleChevronStart"
         | "cdxIconDownTriangle"
@@ -9732,17 +9774,20 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconEye"
         | "cdxIconEyeClosed"
         | "cdxIconFeedback"
+        | "cdxIconFilter"
         | "cdxIconFlag"
         | "cdxIconFolderPlaceholder"
         | "cdxIconFullscreen"
         | "cdxIconFunction"
         | "cdxIconFunctionArgument"
         | "cdxIconFunnel"
+        | "cdxIconFunnelMatch"
         | "cdxIconGlobe"
         | "cdxIconHalfBright"
         | "cdxIconHalfStar"
         | "cdxIconHand"
         | "cdxIconHeart"
+        | "cdxIconHeartOutline"
         | "cdxIconHelp"
         | "cdxIconHelpNotice"
         | "cdxIconHieroglyph"
@@ -9770,13 +9815,19 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconLanguage"
         | "cdxIconLargerText"
         | "cdxIconLayout"
+        | "cdxIconLevelNone"
+        | "cdxIconLevelOne"
+        | "cdxIconLevelThree"
+        | "cdxIconLevelTwo"
         | "cdxIconLightbulb"
+        | "cdxIconLightbulbOutline"
         | "cdxIconLink"
         | "cdxIconLinkExternal"
         | "cdxIconLinkSecure"
         | "cdxIconListBullet"
         | "cdxIconListNumbered"
         | "cdxIconLiteral"
+        | "cdxIconLive"
         | "cdxIconLock"
         | "cdxIconLogIn"
         | "cdxIconLogOut"
@@ -9798,6 +9849,7 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconLogoWikiversity"
         | "cdxIconLogoWikivoyage"
         | "cdxIconLogoWiktionary"
+        | "cdxIconMagicWand"
         | "cdxIconMap"
         | "cdxIconMapPin"
         | "cdxIconMapPinAdd"
@@ -9824,6 +9876,7 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconNoWikitext"
         | "cdxIconNotBright"
         | "cdxIconNotice"
+        | "cdxIconOcr"
         | "cdxIconOngoingConversation"
         | "cdxIconOutdent"
         | "cdxIconOutline"
@@ -9831,6 +9884,7 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconPalette"
         | "cdxIconPaste"
         | "cdxIconPause"
+        | "cdxIconPictureInPicture"
         | "cdxIconPlay"
         | "cdxIconPower"
         | "cdxIconPrevious"
@@ -9845,8 +9899,10 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconReferenceExisting"
         | "cdxIconReferences"
         | "cdxIconReload"
+        | "cdxIconRestart"
         | "cdxIconRestore"
         | "cdxIconRobot"
+        | "cdxIconRotate"
         | "cdxIconSandbox"
         | "cdxIconSearch"
         | "cdxIconSearchCaseSensitive"
@@ -9854,6 +9910,8 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconSearchRegularExpression"
         | "cdxIconSettings"
         | "cdxIconShare"
+        | "cdxIconShareAndroid"
+        | "cdxIconShareIOS"
         | "cdxIconSignature"
         | "cdxIconSmaller"
         | "cdxIconSmallerText"
@@ -9862,11 +9920,14 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconSpecialPages"
         | "cdxIconSpeechBubble"
         | "cdxIconSpeechBubbleAdd"
+        | "cdxIconSpeechBubbleAlert"
         | "cdxIconSpeechBubbles"
         | "cdxIconStar"
+        | "cdxIconSticker"
         | "cdxIconStop"
         | "cdxIconStrikethrough"
         | "cdxIconSubscript"
+        | "cdxIconSubtitle"
         | "cdxIconSubtract"
         | "cdxIconSuccess"
         | "cdxIconSuperscript"
@@ -9881,6 +9942,7 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconTableMoveColumnBefore"
         | "cdxIconTableMoveRowAfter"
         | "cdxIconTableMoveRowBefore"
+        | "cdxIconTabs"
         | "cdxIconTag"
         | "cdxIconTemplateAdd"
         | "cdxIconTextDirLTR"
@@ -9888,6 +9950,7 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconTextFlow"
         | "cdxIconTextStyle"
         | "cdxIconTextSummary"
+        | "cdxIconThreeDimensional"
         | "cdxIconTrash"
         | "cdxIconTray"
         | "cdxIconUnBlock"
@@ -9897,6 +9960,7 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconUnStar"
         | "cdxIconUnderline"
         | "cdxIconUndo"
+        | "cdxIconUniversalDesign"
         | "cdxIconUpTriangle"
         | "cdxIconUpdate"
         | "cdxIconUpload"
@@ -9905,12 +9969,17 @@ export interface ApiQueryCodexIconsParams extends ApiQueryParams {
         | "cdxIconUserAnonymous"
         | "cdxIconUserAvatar"
         | "cdxIconUserAvatarOutline"
+        | "cdxIconUserBlocked"
+        | "cdxIconUserChat"
         | "cdxIconUserContributions"
         | "cdxIconUserGroup"
+        | "cdxIconUserMentor"
+        | "cdxIconUserPages"
         | "cdxIconUserRights"
         | "cdxIconUserTalk"
         | "cdxIconUserTemporary"
         | "cdxIconUserTemporaryLocation"
+        | "cdxIconVerticalEllipsis"
         | "cdxIconViewCompact"
         | "cdxIconViewDetails"
         | "cdxIconVisionSimulator"
@@ -9943,6 +10012,7 @@ export interface CommunityConfigurationApiQueryReadParams extends ApiQueryParams
         | "GrowthSuggestedEdits"
         | "HelpPanel"
         | "Mentorship"
+        | "ReportIncident"
         | "TemplateData-FeaturedTemplates";
     /**
      * Assert specific version
@@ -10035,7 +10105,7 @@ export interface ContentTranslationActionApiQueryContentTranslationFavoriteSugge
 }
 
 /**
- * Get the list of logged-in contributors (including temporary users) and the count of logged-out contributors to a page.
+ * Get the list of registered contributors (including temporary users) and the count of anonymous contributors to a page.
  *
  * @see https://www.mediawiki.org/wiki/Special:MyLanguage/API:Contributors
  */
@@ -10169,7 +10239,9 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "createaccount"
         | "createpage"
         | "createpagemainns"
+        | "createpreviouslyrenamedaccount"
         | "createtalk"
+        | "createwithcontentmodel"
         | "delete"
         | "delete-redirect"
         | "deletechangetags"
@@ -10178,6 +10250,7 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "deletelogentry"
         | "deleterevision"
         | "echo-create"
+        | "echo-read-notifications"
         | "edit"
         | "editautopatrolprotected"
         | "editautoreviewprotected"
@@ -10211,7 +10284,7 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "flow-suppress"
         | "globalblock"
         | "globalblock-exempt"
-        | "globalblock-whitelist"
+        | "globalblock-local-status"
         | "globalgroupmembership"
         | "globalgrouppermissions"
         | "hideuser"
@@ -10221,9 +10294,11 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "interwiki"
         | "ipblock-exempt"
         | "ipinfo"
+        | "ipinfo-view-arbitrary-ip"
         | "ipinfo-view-basic"
         | "ipinfo-view-full"
         | "ipinfo-view-log"
+        | "logout"
         | "manage-all-push-subscriptions"
         | "managechangetags"
         | "managementors"
@@ -10251,9 +10326,9 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "nominornewtalk"
         | "noratelimit"
         | "nuke"
-        | "oathauth-api-all"
         | "oathauth-disable-for-user"
         | "oathauth-enable"
+        | "oathauth-recover-for-user"
         | "oathauth-verify-user"
         | "oathauth-view-log"
         | "override-antispoof"
@@ -10266,6 +10341,7 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "read"
         | "renameuser"
         | "renameuser-global"
+        | "reportincident"
         | "reupload"
         | "reupload-own"
         | "reupload-shared"
@@ -10277,7 +10353,6 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "securepoll-view-voter-pii"
         | "sendemail"
         | "setmentor"
-        | "sfsblock-bypass"
         | "siteadmin"
         | "skipcaptcha"
         | "spamblacklistlog"
@@ -10308,6 +10383,7 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "viewmyprivateinfo"
         | "viewmywatchlist"
         | "viewsuppressed"
+        | "wikilambda-abstract-optin"
     >;
     /**
      * Exclude users having the given rights. Does not include rights granted by implicit or auto-promoted groups like *, user, or autoconfirmed.
@@ -10368,7 +10444,9 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "createaccount"
         | "createpage"
         | "createpagemainns"
+        | "createpreviouslyrenamedaccount"
         | "createtalk"
+        | "createwithcontentmodel"
         | "delete"
         | "delete-redirect"
         | "deletechangetags"
@@ -10377,6 +10455,7 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "deletelogentry"
         | "deleterevision"
         | "echo-create"
+        | "echo-read-notifications"
         | "edit"
         | "editautopatrolprotected"
         | "editautoreviewprotected"
@@ -10410,7 +10489,7 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "flow-suppress"
         | "globalblock"
         | "globalblock-exempt"
-        | "globalblock-whitelist"
+        | "globalblock-local-status"
         | "globalgroupmembership"
         | "globalgrouppermissions"
         | "hideuser"
@@ -10420,9 +10499,11 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "interwiki"
         | "ipblock-exempt"
         | "ipinfo"
+        | "ipinfo-view-arbitrary-ip"
         | "ipinfo-view-basic"
         | "ipinfo-view-full"
         | "ipinfo-view-log"
+        | "logout"
         | "manage-all-push-subscriptions"
         | "managechangetags"
         | "managementors"
@@ -10450,9 +10531,9 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "nominornewtalk"
         | "noratelimit"
         | "nuke"
-        | "oathauth-api-all"
         | "oathauth-disable-for-user"
         | "oathauth-enable"
+        | "oathauth-recover-for-user"
         | "oathauth-verify-user"
         | "oathauth-view-log"
         | "override-antispoof"
@@ -10465,6 +10546,7 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "read"
         | "renameuser"
         | "renameuser-global"
+        | "reportincident"
         | "reupload"
         | "reupload-own"
         | "reupload-shared"
@@ -10476,7 +10558,6 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "securepoll-view-voter-pii"
         | "sendemail"
         | "setmentor"
-        | "sfsblock-bypass"
         | "siteadmin"
         | "skipcaptcha"
         | "spamblacklistlog"
@@ -10507,6 +10588,7 @@ export interface ApiQueryContributorsParams extends ApiQueryParams {
         | "viewmyprivateinfo"
         | "viewmywatchlist"
         | "viewsuppressed"
+        | "wikilambda-abstract-optin"
     >;
     /**
      * How many contributors to return.
@@ -11471,7 +11553,7 @@ export interface GeoDataApiQueryGeoSearchElasticParams extends ApiQueryParams {
      *
      * Defaults to `earth`.
      */
-    gsglobe?: "earth";
+    gsglobe?: "earth" | "mars" | "moon" | "venus";
     /**
      * Namespaces to search.
      *
@@ -11546,8 +11628,8 @@ export interface CentralAuthApiQueryGlobalAllUsersParams extends ApiQueryParams 
         | "global-rollbacker"
         | "global-sysop"
         | "global-temporary-account-viewer"
+        | "local-bot"
         | "new-wikis-importer"
-        | "oathauth-tester"
         | "ombuds"
         | "recursive-export"
         | "staff"
@@ -11575,8 +11657,8 @@ export interface CentralAuthApiQueryGlobalAllUsersParams extends ApiQueryParams 
         | "global-rollbacker"
         | "global-sysop"
         | "global-temporary-account-viewer"
+        | "local-bot"
         | "new-wikis-importer"
-        | "oathauth-tester"
         | "ombuds"
         | "recursive-export"
         | "staff"
@@ -11773,6 +11855,44 @@ export interface CentralAuthApiQueryGlobalUserInfoParams extends ApiQueryParams 
      * - **editcount**: Get the user's global edit count.
      */
     guiprop?: OneOrMore<"editcount" | "groups" | "merged" | "rights" | "unattached">;
+}
+
+/**
+ * Get information about a list of global users.
+ */
+export interface CentralAuthApiQueryGlobalUsersParams extends ApiQueryParams {
+    /**
+     * Which pieces of information to include:
+     *
+     * - **locked**: Adds information on whether the user is globally locked.
+     * - **editcount**: Adds the user's global edit count.
+     * - **registration**: Adds the user's global account registration timestamp.
+     * - **localinfo**: Adds the user's local account information.
+     * - **groups**: Lists all the global groups each user belongs to.
+     * - **groupmemberships**: Lists global groups that each user has been explicitly assigned to, including the expiry date of each group membership.
+     * - **rights**: Lists all the global rights each user has.
+     */
+    gusprop?: OneOrMore<
+        | "editcount"
+        | "groupmemberships"
+        | "groups"
+        | "localinfo"
+        | "locked"
+        | "registration"
+        | "rights"
+    >;
+    /**
+     * A list of global users to obtain information for. Cannot be used together with `guscentralids`.
+     */
+    gususers?: string | string[];
+    /**
+     * A list of central user IDs to obtain information for. Cannot be used together with `gususers`.
+     */
+    guscentralids?: number | number[];
+    /**
+     * When listing groups or rights, only include those that apply to the current wiki.
+     */
+    guslocalgroups?: boolean;
 }
 
 /**
@@ -12188,6 +12308,7 @@ export interface ApiQueryInfoParams extends ApiQueryParams {
      * - **protection**: List the protection level of each page.
      * - **talkid**: The page ID of the talk page for each non-talk page.
      * - **watched**: List the watched status of each page.
+     * - **watchlistlabels**: List the watchlist labels for each page.
      * - **watchers**: The number of watchers, if allowed.
      * - **visitingwatchers**: The number of watchers of each page who have visited recent edits to that page, if allowed.
      * - **notificationtimestamp**: The watchlist notification timestamp of each page.
@@ -12217,6 +12338,7 @@ export interface ApiQueryInfoParams extends ApiQueryParams {
         | "visitingwatchers"
         | "watched"
         | "watchers"
+        | "watchlistlabels"
         | "preload"
         | "readable"
     >;
@@ -12491,11 +12613,28 @@ export interface ApiQueryLanguageinfoParams extends ApiQueryParams {
      * - **variantnames**: The short names for language variants used for language conversion links.
      * - **fallbacks**: The language codes of the fallback languages configured for this language. The implicit final fallback to 'en' is not included (but some languages may fall back to 'en' explicitly).
      * - **variants**: The language codes of the variants supported by this language.
+     * - **digittransforms**: The digit transforms for formatting numbers in this language.
+     * - **digitgroupingpattern**: The grouping pattern for formatting numbers in this language.
+     * - **minimumgroupingdigits**: The number of digits below which grouping of numerals is suppressed.
+     * - **namespacenames**: The names of this wiki's namespaces in this language.
+     * - **namespacealiases**: The aliases for the namespace names in this wiki in this language.
      *
      * Defaults to `code`.
      */
     liprop?: OneOrMore<
-        "autonym" | "bcp47" | "code" | "dir" | "fallbacks" | "name" | "variantnames" | "variants"
+        | "autonym"
+        | "bcp47"
+        | "code"
+        | "digitgroupingpattern"
+        | "digittransforms"
+        | "dir"
+        | "fallbacks"
+        | "minimumgroupingdigits"
+        | "name"
+        | "namespacealiases"
+        | "namespacenames"
+        | "variantnames"
+        | "variants"
     >;
     /**
      * Language codes of the languages that should be returned, or `*` for all languages.
@@ -12607,6 +12746,7 @@ export interface LinterApiQueryLintErrorsParams extends ApiQueryParams {
         | "multiple-unclosed-formatting-tags"
         | "night-mode-unaware-background-color"
         | "obsolete-tag"
+        | "pre-expansion"
         | "pwrap-bug-workaround"
         | "self-closed-tag"
         | "stripped-tag"
@@ -12748,6 +12888,7 @@ export interface ApiQueryLogEventsParams extends ApiQueryParams {
         | "delete/event"
         | "delete/restore"
         | "delete/revision"
+        | "emailauth/*"
         | "gblblock/*"
         | "gblblock/gunblock"
         | "gblrename/merge"
@@ -13089,22 +13230,6 @@ export interface NotificationsApiEchoNotificationsParams extends ApiQueryParams 
 }
 
 /**
- * Check to see if two-factor authentication (OATH) is enabled for a user.
- *
- * @private
- */
-export interface OATHAuthApiModuleApiQueryOATHParams extends ApiQueryParams {
-    /**
-     * User to get information about. Defaults to the current user.
-     */
-    oathuser?: string;
-    /**
-     * Reason for querying the OATH status.
-     */
-    oathreason?: string;
-}
-
-/**
  * Enumerates pages that have changes pending review.
  */
 export interface ApiQueryOldreviewedpagesParams extends ApiQueryParams {
@@ -13345,6 +13470,7 @@ export interface WikibaseClientApiPageTermsParams extends ApiQueryParams {
         | "af"
         | "agq"
         | "aig"
+        | "ak"
         | "aln"
         | "als"
         | "alt"
@@ -13504,6 +13630,7 @@ export interface WikibaseClientApiPageTermsParams extends ApiQueryParams {
         | "frc"
         | "frp"
         | "frr"
+        | "frs"
         | "fur"
         | "fvr"
         | "fy"
@@ -13578,6 +13705,7 @@ export interface WikibaseClientApiPageTermsParams extends ApiQueryParams {
         | "io"
         | "is"
         | "isu"
+        | "isv"
         | "isv-cyrl"
         | "isv-latn"
         | "it"
@@ -13654,6 +13782,7 @@ export interface WikibaseClientApiPageTermsParams extends ApiQueryParams {
         | "liv"
         | "ljp"
         | "lki"
+        | "lkt"
         | "lld"
         | "lmo"
         | "ln"
@@ -13857,6 +13986,7 @@ export interface WikibaseClientApiPageTermsParams extends ApiQueryParams {
         | "sty"
         | "su"
         | "sv"
+        | "sva"
         | "sw"
         | "syl"
         | "szl"
@@ -14158,6 +14288,7 @@ export interface ApiQueryQueryPageParams extends ApiQueryParams {
         | "Fewestrevisions"
         | "GadgetUsage"
         | "GloballyWantedFiles"
+        | "LintTemplateErrors"
         | "ListDuplicatedFiles"
         | "Listredirects"
         | "Lonelypages"
@@ -14267,7 +14398,7 @@ export interface ApiQueryRandomParams extends ApiQueryParams {
 /**
  * List the pages of a certain list.
  *
- * This module has three modes of operation. With the `rlelists` parameter, it returns the pages in the given list(s). With the `rlechangedsince` parameter, it returns all list entries from any list of the current user which have been changed since the given date. (This is meant for device sync and, unlike the other modes, includes deleted entries, although not entries of deleted lists.) Without any parameters, it returns all entries from all lists of the current user.
+ * This module has three modes of operation. With the `rlelists` parameter, it returns the pages in the given list(s). With the `rlechangedsince` parameter, it returns all list entries from any list of the current user which have been changed since the given date. (This is meant for device sync and, unlike the other modes, includes deleted entries, although not entries of deleted lists.) Without any parameters, it returns all entries from all lists of the current user. The `rleprojects` parameter can be used with any mode to limit results to specific projects.
  *
  * @private
  * @see https://www.mediawiki.org/wiki/Special:MyLanguage/Extension:ReadingLists#API
@@ -14277,6 +14408,10 @@ export interface ReadingListsApiQueryReadingListEntriesParams extends ApiQueryPa
      * The list IDs for which to return pages. Optional. If not specified, returns entries from all lists.
      */
     rlelists?: number | number[];
+    /**
+     * Project identifiers to filter by. Values can be `@local`, canonical project URLs such as {@link https://en.wikipedia.org `https://en.wikipedia.org`}, or wiki IDs such as `enwiki`. Optional. If not specified, returns entries from all projects.
+     */
+    rleprojects?: string | string[];
     /**
      * Show list entries that have been changed since this timestamp. Must be after the current timestamp.
      */
@@ -14838,6 +14973,8 @@ export interface ApiQuerySearchParams extends ApiQueryParams {
         | "none"
         | "random"
         | "relevance"
+        | "title_natural_asc"
+        | "title_natural_desc"
         | "user_random";
 }
 
@@ -14880,6 +15017,7 @@ export interface ApiQuerySiteinfoParams extends ApiQueryParams {
      * - **autopromote**: Returns the automatic promotion configuration.
      * - **autopromoteonce**: Returns the automatic promotion configuration that are only done once.
      * - **copyuploaddomains**: Returns the list of allowed copy upload domains
+     * - **sbom**: Returns a Software Bill of Materials (SBOM) for the MediaWiki installation in the CycloneDX 1.6 format.
      *
      * Defaults to `general`.
      */
@@ -14907,6 +15045,7 @@ export interface ApiQuerySiteinfoParams extends ApiQueryParams {
         | "protocols"
         | "restrictions"
         | "rightsinfo"
+        | "sbom"
         | "showhooks"
         | "skins"
         | "specialpagealiases"
@@ -15050,12 +15189,12 @@ export interface ApiQueryTagsParams extends ApiQueryParams {
     /**
      * Which properties to get:
      *
-     * - **displayname**: Adds system message for the tag.
-     * - **description**: Adds description of the tag.
+     * - **displayname**: Adds the displayed name of the tag. This property will be omitted for hidden tags.
+     * - **description**: Adds the description of the tag.
      * - **hitcount**: Adds the number of revisions and log entries that have this tag.
-     * - **defined**: Indicate whether the tag is defined.
-     * - **source**: Gets the sources of the tag, which may include `extension` for extension-defined tags and `manual` for tags that may be applied manually by users.
-     * - **active**: Whether the tag is still being applied.
+     * - **defined**: Indicate whether the tag is defined (see `source`).
+     * - **source**: Gets the sources of the tag definition, which may include `software` for software-defined tags and `manual` for tags that may be applied manually by users.
+     * - **active**: Whether the tag is still being applied by the software, or may still be applied by users.
      *
      * Defaults to an empty string.
      */
@@ -15640,6 +15779,7 @@ export interface ApiQueryWatchlistParams extends ApiQueryParams {
      * - **loginfo**: Adds log information where appropriate.
      * - **tags**: Lists tags for the entry.
      * - **expiry**: Adds the expiry time.
+     * - **labels**: Adds watchlist labels associated with the entry.
      * - **oresscores**: Adds ORES scores for the edit.
      *
      * Defaults to `ids`, `title`, and `flags`.
@@ -15649,6 +15789,7 @@ export interface ApiQueryWatchlistParams extends ApiQueryParams {
         | "expiry"
         | "flags"
         | "ids"
+        | "labels"
         | "loginfo"
         | "notificationtimestamp"
         | "oresscores"
@@ -15694,6 +15835,10 @@ export interface ApiQueryWatchlistParams extends ApiQueryParams {
      * Defaults to `edit`, `new`, `log`, and `categorize`.
      */
     wltype?: OneOrMore<"categorize" | "edit" | "external" | "log" | "new">;
+    /**
+     * Only list changes with these watchlist label IDs.
+     */
+    wllabels?: number | number[];
     /**
      * Used along with wltoken to access a different user's watchlist.
      */
