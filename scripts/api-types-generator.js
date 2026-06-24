@@ -6,8 +6,20 @@
  * a MediaWiki configuration or extension, and should be generalized back to a string.
  */
 const GENERALIZE_ENUM_TYPE_CONTAINING = [
+    // Codex icons
+    ["cdxIconArticle"],
+    // content formats
+    ["application/json", "text/plain"],
+    // content models
+    ["GadgetDefinition", "JsonSchema"],
+    // languages
+    ["en", "zh"],
     // tags
     ["AWB", "WPCleaner"],
+    // user groups
+    ["founder", "steward"],
+    // user rights
+    ["abusefilter-view", "editsitecss"],
     // wikis
     ["enwiki", "zhwiki"],
 ].map((l) => new Set(l));
