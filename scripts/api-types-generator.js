@@ -1,3 +1,4 @@
+// Go to https://en.wikipedia.org
 // Paste this into the browser console
 // and copy the console log output
 
@@ -254,4 +255,74 @@ const queryTypes = queryData.paraminfo.modules.map((module) =>
     processModuleInfo("ApiQuery", module),
 );
 
-console.log([...actionTypes, ...queryTypes].join("\n\n"));
+console.log(`// tslint:disable:no-empty-interface
+
+type timestamp = string;
+type expiry = string;
+type namespace = number;
+type limit = number | "max";
+type password = string;
+type upload = File; // XXX
+type OneOrMore<T> = T | T[];
+
+export type ApiAssert = "anon" | "bot" | "user";
+
+export type ApiTokenType =
+    | "createaccount"
+    | "csrf"
+    | "deleteglobalaccount"
+    | "login"
+    | "patrol"
+    | "rollback"
+    | "setglobalaccountstatus"
+    | "userrights"
+    | "watch";
+
+export type ApiLegacyTokenType =
+    | "block"
+    | "delete"
+    | "edit"
+    | "email"
+    | "import"
+    | "move"
+    | "options"
+    | "protect"
+    | "unblock";
+
+export type UnknownApiParams = Record<
+    string,
+    string | number | boolean | File | string[] | number[] | undefined
+>;
+
+export interface ApiParams extends UnknownApiParams {
+    action?: string;
+    format?: "json" | "jsonfm" | "xml" | "xmlfm" | "php" | "none";
+    maxlag?: number;
+    smaxage?: number;
+    maxage?: number;
+    assert?: "user" | "bot" | "anon";
+    assertuser?: string;
+    requestid?: string;
+    servedby?: boolean;
+    curtimestamp?: boolean;
+    responselanginfo?: boolean;
+    origin?: string;
+    uselang?: string;
+    errorformat?: "bc" | "html" | "none" | "plaintext" | "raw" | "wikitext";
+    errorlang?: string;
+    errorsuselocal?: boolean;
+    centralauthtoken?: string;
+
+    // format=json
+    callback?: string;
+    utf8?: boolean;
+    ascii?: boolean;
+    formatversion?: "1" | "2" | "latest";
+}
+
+${actionTypes.join("\n\n")}
+
+${queryTypes.join("\n\n")}
+
+export {};
+`);
