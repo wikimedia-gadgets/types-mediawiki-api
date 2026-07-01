@@ -175,14 +175,36 @@ const literalToJSdoc = (lit, multi) => {
     }
 };
 
-function processParamInfo(prefix, param) {
+/**
+ * Replace template variables in a module parameter name.
+ *
+ * @param {string} name Parameter name.
+ * @param {string[]} templateVars Template variables that *may* appear in the name.
+ */
+function replaceTemplateVars(name, templateVars) {
+    const varPattern = new RegExp(`\\{(${templateVars.join("|")})\\}`, "g");
+    return name.replaceAll(varPattern, "${string}");
+}
+
+/**
+ * Format an API module parameter as a TS property.
+ *
+ * @param {string} prefix Prefix to prepend to all parameter names.
+ * @param {any} param API module parameter data.
+ * @param {Set<string>} allTemplateVars Template variables used by parameters from this module.
+ */
+function processParamInfo(prefix, param, allTemplateVars) {
     let type = param.type;
 
-    // Convert the API type to a TypeScript type
-    // Avoid being over-specific
+    // Convert the API type to a TS type
     if (Array.isArray(type)) {
         const enumSet = new Set(type);
-        if (GENERALIZE_ENUM_TYPE_CONTAINING.some((s) => s.isSubsetOf(enumSet))) {
+        if (
+            // is its value used as a template variable for another parameter?
+            allTemplateVars.has(param.name) ||
+            // is it extensible?
+            GENERALIZE_ENUM_TYPE_CONTAINING.some((s) => s.isSubsetOf(enumSet))
+        ) {
             type = "string";
         }
     } else if (type === "text" || type === "title" || type === "user" || type === "raw") {
@@ -203,7 +225,12 @@ function processParamInfo(prefix, param) {
     }
 
     let name = prefix + param.name;
-    if (name.includes("-")) {
+    let isOptional = true;
+    if (param.templatevars !== undefined) {
+        name = replaceTemplateVars(name, Object.keys(param.templatevars));
+        name = `[k: \`${name}\`]`;
+        isOptional = false;
+    } else if (name.includes("-")) {
         name = `"${name}"`;
     }
 
@@ -220,7 +247,7 @@ function processParamInfo(prefix, param) {
         jsdoc.deprecated = true;
     }
 
-    return `${jsdoc.toString()}\n${name}?: ${type};`;
+    return `${jsdoc.toString()}\n${name}${isOptional ? "?:" : ":"} ${type};`;
 }
 
 function getInterfaceName(module) {
@@ -230,6 +257,29 @@ function getInterfaceName(module) {
         .replace(/ApiApi/g, "Api");
 }
 
+/**
+ * Merge 2 parameter arrays into a new array, ordered by index.
+ *
+ * @param {any[]} params1 1st parameter array, ordered by index.
+ * @param {any[]} params2 2nd parameter array, ordered by index.
+ */
+function mergeParameterArrays(params1, params2) {
+    const params = [];
+    let i1 = 0,
+        i2 = 0;
+    while (i1 < params1.length && i2 < params2.length) {
+        params.push(params1[i1].index < params2[i2].index ? params1[i1++] : params2[i2++]);
+    }
+    params.push(...params1.slice(i1), ...params2.slice(i2));
+    return params;
+}
+
+/**
+ * Format an API module as a TS interface.
+ *
+ * @param {string} parent Parent interface name.
+ * @param {any} module API module data.
+ */
 function processModuleInfo(parent, module) {
     const jsdoc = new JSdoc();
     jsdoc.description = htmlToJSdoc(module.description);
@@ -240,11 +290,17 @@ function processModuleInfo(parent, module) {
     if (module.deprecated) {
         jsdoc.deprecated = true;
     }
+
+    const parameters = mergeParameterArrays(module.parameters, module.templatedparameters);
+    const allTemplateVars = new Set(
+        module.templatedparameters.flatMap((p) => Object.values(p.templatevars)),
+    );
+
     return [
         jsdoc.toString(),
         `export interface ${getInterfaceName(module)}Params extends ${parent}Params {`,
-        ...module.parameters.map((param) =>
-            processParamInfo(module.prefix, param).replace(/^/gm, "\t"),
+        ...parameters.map((param) =>
+            processParamInfo(module.prefix, param, allTemplateVars).replace(/^/gm, "\t"),
         ),
         "}",
     ].join("\n");
