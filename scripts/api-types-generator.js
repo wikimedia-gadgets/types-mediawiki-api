@@ -202,6 +202,10 @@ function processParamInfo(prefix, param) {
         }
     }
 
+    if (param.allspecifier !== undefined) {
+        type = `${type} | '${param.allspecifier}'`;
+    }
+
     let name = prefix + param.name;
     if (name.includes("-")) {
         name = `"${name}"`;
