@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Fixed missing `*` value for some properties accepting multiple values (such as `ApiQueryTokensParams.type` or `ApiBlockParams.namespacerestrictions`).
+
 ## 2.1.0
 
 - Updated types.

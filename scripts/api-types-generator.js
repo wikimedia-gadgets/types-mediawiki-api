@@ -224,6 +224,10 @@ function processParamInfo(prefix, param, allTemplateVars) {
         }
     }
 
+    if (param.allspecifier !== undefined) {
+        type = `${type} | '${param.allspecifier}'`;
+    }
+
     let name = prefix + param.name;
     let isOptional = true;
     if (param.templatevars !== undefined) {
