@@ -349,7 +349,7 @@ export interface ApiCentralNoticeQueryCampaignParams extends ApiParams {
     /**
      * Campaign name. Separate multiple values with a "|" (vertical bar).
      */
-    campaign?: string;
+    campaign?: string | string[];
 }
 
 /**
@@ -664,11 +664,14 @@ export interface CommunityConfigurationApiEditParams extends ApiParams {
      * Provider key
      */
     provider?:
+        | "ArticleGuidance"
         | "Babel"
         | "BlockedDomain"
         | "CampaignEvents"
+        | "Cite-VisualEditor-Autonames"
         | "CommunityUpdates"
         | "ContentTranslation"
+        | "EditCheck"
         | "GrowthHomepage"
         | "GrowthMentorList"
         | "GrowthSuggestedEdits"
@@ -719,7 +722,23 @@ export interface ApiComparePagesParams extends ApiParams {
      *
      * This parameter specifies the slots that are to be modified. Use `fromtext-{slot}`, `fromcontentmodel-{slot}`, and `fromcontentformat-{slot}` to specify content for each slot.
      */
-    fromslots?: OneOrMore<"main">;
+    fromslots?: string | string[];
+    /**
+     * Text of the specified slot. If omitted, the slot is removed from the revision.
+     */
+    [k: `fromtext-${string}`]: string;
+    /**
+     * When `fromtext-{slot}` is the content of a single section, this is the section identifier. It will be merged into the revision specified by `fromtitle`, `fromid` or `fromrev` as if for a section edit.
+     */
+    [k: `fromsection-${string}`]: string;
+    /**
+     * Content serialization format of `fromtext-{slot}`.
+     */
+    [k: `fromcontentformat-${string}`]: string;
+    /**
+     * Content model of `fromtext-{slot}`. If not supplied, it will be guessed based on the other parameters.
+     */
+    [k: `fromcontentmodel-${string}`]: string;
     /**
      * Do a pre-save transform on `fromtext-{slot}`.
      */
@@ -769,7 +788,23 @@ export interface ApiComparePagesParams extends ApiParams {
      *
      * This parameter specifies the slots that are to be modified. Use `totext-{slot}`, `tocontentmodel-{slot}`, and `tocontentformat-{slot}` to specify content for each slot.
      */
-    toslots?: OneOrMore<"main">;
+    toslots?: string | string[];
+    /**
+     * Text of the specified slot. If omitted, the slot is removed from the revision.
+     */
+    [k: `totext-${string}`]: string;
+    /**
+     * When `totext-{slot}` is the content of a single section, this is the section identifier. It will be merged into the revision specified by `totitle`, `toid` or `torev` as if for a section edit.
+     */
+    [k: `tosection-${string}`]: string;
+    /**
+     * Content serialization format of `totext-{slot}`.
+     */
+    [k: `tocontentformat-${string}`]: string;
+    /**
+     * Content model of `totext-{slot}`. If not supplied, it will be guessed based on the other parameters.
+     */
+    [k: `tocontentmodel-${string}`]: string;
     /**
      * Do a pre-save transform on `totext`.
      */
@@ -1411,6 +1446,12 @@ export interface DiscussionToolsApiDiscussionToolsEditParams extends ApiParams {
      * Return parse output in a format suitable for mobile devices.
      */
     mobileformat?: boolean;
+    /**
+     * Client Hints data that client side code sends with the request. For internal use only.
+     *
+     * Sensitive parameter.
+     */
+    checkuserclienthints?: string;
 }
 
 /**
@@ -1878,6 +1919,10 @@ export interface ApiEditPageParams extends ApiParams {
      */
     wgConfirmEditForceShowCaptcha?: boolean;
     /**
+     * Record that this edit was made through {@link https://www.mediawiki.org/wiki/Special:NewArticle `Article guidance`}, so it can be tagged accordingly.
+     */
+    articleguidance?: boolean;
+    /**
      * Name of the editor interface used (such as MobileFrontend-SourceEditor)
      */
     editorinterface?: string;
@@ -1887,6 +1932,12 @@ export interface ApiEditPageParams extends ApiParams {
      * Defaults to `preferences`.
      */
     discussiontoolsautosubscribe?: "no" | "preferences" | "yes";
+    /**
+     * Client Hints data that client side code sends with the request. For internal use only.
+     *
+     * Sensitive parameter.
+     */
+    checkuserclienthints?: string;
 }
 
 /**
@@ -2085,7 +2136,7 @@ export interface FeaturedFeedsApiFeaturedFeedsParams extends ApiParams {
  */
 export interface ApiFeedContributionsParams extends ApiParams {
     /**
-     * The format of the feed.
+     * The format of the feed. This parameter overrides the `format` parameter.
      *
      * Defaults to `rss`.
      */
@@ -2107,7 +2158,7 @@ export interface ApiFeedContributionsParams extends ApiParams {
      */
     month?: number;
     /**
-     * Filter contributions that have these tags.
+     * Only show contributions that have these tags.
      *
      * Defaults to an empty string.
      */
@@ -2141,7 +2192,7 @@ export interface ApiFeedContributionsParams extends ApiParams {
  */
 export interface ApiFeedRecentChangesParams extends ApiParams {
     /**
-     * The format of the feed.
+     * The format of the feed. This parameter overrides the `format` parameter.
      *
      * Defaults to `rss`.
      */
@@ -2227,7 +2278,7 @@ export interface ApiFeedRecentChangesParams extends ApiParams {
  */
 export interface ApiFeedWatchlistParams extends ApiParams {
     /**
-     * The format of the feed.
+     * The format of the feed. This parameter overrides the `format` parameter.
      *
      * Defaults to `rss`.
      */
@@ -3150,7 +3201,7 @@ export interface ApiLogoutParams extends ApiParams {
      */
     token?: string;
     /**
-     * Client hints data supplied alongside requests to ApiLogout. For internal use only.
+     * Client Hints data that client side code sends with the request. For internal use only.
      *
      * Sensitive parameter.
      */
@@ -3609,9 +3660,13 @@ export interface PageTriageApiPageTriageListParams extends ApiParams {
      */
     blocked_users?: boolean;
     /**
-     * Show only pages created by username.
+     * Show only pages created by any of these usernames.
      */
-    username?: string;
+    username?: string | string[];
+    /**
+     * Whether to hide pages created by the current user.
+     */
+    hideownpages?: boolean;
     /**
      * Show only pages with this keyword in the snippet.
      */
@@ -3697,7 +3752,7 @@ export interface PageTriageApiPageTriageStatsParams extends ApiParams {
      */
     show_predicted_issues_copyvio?: boolean;
     /**
-     * Whether to include only pages created by bots.
+     * Whether to include only pages created by bots.
      */
     showbots?: boolean;
     /**
@@ -3733,37 +3788,41 @@ export interface PageTriageApiPageTriageStatsParams extends ApiParams {
      */
     afc_state?: number;
     /**
-     * Whether to include only pages with no category.
+     * Whether to include only pages with no category.
      */
     no_category?: boolean;
     /**
-     * Whether to include only pages with no references.
+     * Whether to include only pages with no references.
      */
     unreferenced?: boolean;
     /**
-     * Whether to include only pages with no inbound links.
+     * Whether to include only pages with no inbound links.
      */
     no_inbound_links?: boolean;
     /**
-     * Whether to include only pages that were previously deleted.
+     * Whether to include only pages that were previously deleted.
      */
     recreated?: boolean;
     /**
-     * Whether to include only pages created by non-autoconfirmed users.
+     * Whether to include only pages created by non-autoconfirmed users.
      */
     non_autoconfirmed_users?: boolean;
     /**
-     * Whether to include only pages created by newly autoconfirmed users.
+     * Whether to include only pages created by newly autoconfirmed users.
      */
     learners?: boolean;
     /**
-     * Whether to include only pages created by blocked users.
+     * Whether to include only pages created by blocked users.
      */
     blocked_users?: boolean;
     /**
-     * Include only pages created by username.
+     * Include only pages created by any of these usernames.
      */
-    username?: string;
+    username?: string | string[];
+    /**
+     * Whether to hide pages created by the current user.
+     */
+    hideownpages?: boolean;
     /**
      * Include only pages with this keyword in the snippet.
      */
@@ -3858,6 +3917,7 @@ export interface ApiParamInfoParams extends ApiParams {
     querymodules?: OneOrMore<
         | "abusefilters"
         | "abuselog"
+        | "abusereview"
         | "allcategories"
         | "alldeletedrevisions"
         | "allfileusages"
@@ -3917,6 +3977,7 @@ export interface ApiParamInfoParams extends ApiParams {
         | "globalblocks"
         | "globalgroups"
         | "globalpreferences"
+        | "globalrenamequeue"
         | "globalrenamestatus"
         | "globalusage"
         | "globaluserinfo"
@@ -4417,6 +4478,7 @@ export interface ApiPurgeParams extends ApiParams {
      *
      * **Note:** Generator parameter names must be prefixed with a "g", see examples.
      *
+     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Babusereview abusereview}**: List the edits that wait for review on {@link https://www.mediawiki.org/wiki/Special:AbuseReview Special:AbuseReview}.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Ballcategories allcategories}**: Enumerate all categories.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Balldeletedrevisions alldeletedrevisions}**: List all deleted revisions by a user or in a namespace.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Ballfileusages allfileusages}**: List all file usages, including non-existing.
@@ -4463,6 +4525,7 @@ export interface ApiPurgeParams extends ApiParams {
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Breadinglistentries readinglistentries}**: Internal. List the pages of a certain list.
      */
     generator?:
+        | "abusereview"
         | "allcategories"
         | "alldeletedrevisions"
         | "allfileusages"
@@ -4619,6 +4682,7 @@ export interface ApiQueryParams extends ApiParams {
      *
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Babusefilters abusefilters}**: Show details of the edit filters.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Babuselog abuselog}**: Show events that were caught by one of the edit filters.
+     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Babusereview abusereview}**: List the edits that wait for review on {@link https://www.mediawiki.org/wiki/Special:AbuseReview Special:AbuseReview}.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Ballcategories allcategories}**: Enumerate all categories.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Balldeletedrevisions alldeletedrevisions}**: List all deleted revisions by a user or in a namespace.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Ballfileusages allfileusages}**: List all file usages, including non-existing.
@@ -4650,8 +4714,9 @@ export interface ApiQueryParams extends ApiParams {
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bgadgets gadgets}**: Returns a list of gadgets used on this wiki.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bgeosearch geosearch}**: Returns pages having coordinates that are located in a certain area.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bglobalallusers globalallusers}**: Enumerate all global users.
-     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bglobalblocks globalblocks}**: List all globally blocked IP addresses.
+     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bglobalblocks globalblocks}**: List all globally blocked IP addresses and accounts. Note: Users that are locked using CentralAuth are not included in this list unless also globally blocked.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bglobalgroups globalgroups}**: Enumerate all global groups.
+     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bglobalrenamequeue globalrenamequeue}**: List requests in the global rename queue.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bglobalusers globalusers}**: Get information about a list of global users.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bgrowthmentorlist growthmentorlist}**: List all the mentors
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Bgrowthmentormentee growthmentormentee}**: Get all mentees assigned to a given mentor
@@ -4691,6 +4756,7 @@ export interface ApiQueryParams extends ApiParams {
     list?: OneOrMore<
         | "abusefilters"
         | "abuselog"
+        | "abusereview"
         | "allcategories"
         | "alldeletedrevisions"
         | "allfileusages"
@@ -4724,6 +4790,7 @@ export interface ApiQueryParams extends ApiParams {
         | "globalallusers"
         | "globalblocks"
         | "globalgroups"
+        | "globalrenamequeue"
         | "globalusers"
         | "growthmentorlist"
         | "growthmentormentee"
@@ -4865,6 +4932,7 @@ export interface ApiQueryParams extends ApiParams {
      *
      * **Note:** Generator parameter names must be prefixed with a "g", see examples.
      *
+     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Babusereview abusereview}**: List the edits that wait for review on {@link https://www.mediawiki.org/wiki/Special:AbuseReview Special:AbuseReview}.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Ballcategories allcategories}**: Enumerate all categories.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Balldeletedrevisions alldeletedrevisions}**: List all deleted revisions by a user or in a namespace.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Ballfileusages allfileusages}**: List all file usages, including non-existing.
@@ -4911,6 +4979,7 @@ export interface ApiQueryParams extends ApiParams {
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Breadinglistentries readinglistentries}**: Internal. List the pages of a certain list.
      */
     generator?:
+        | "abusereview"
         | "allcategories"
         | "alldeletedrevisions"
         | "allfileusages"
@@ -5324,6 +5393,7 @@ export interface ApiSetNotificationTimestampParams extends ApiParams {
      *
      * **Note:** Generator parameter names must be prefixed with a "g", see examples.
      *
+     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Babusereview abusereview}**: List the edits that wait for review on {@link https://www.mediawiki.org/wiki/Special:AbuseReview Special:AbuseReview}.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Ballcategories allcategories}**: Enumerate all categories.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Balldeletedrevisions alldeletedrevisions}**: List all deleted revisions by a user or in a namespace.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Ballfileusages allfileusages}**: List all file usages, including non-existing.
@@ -5370,6 +5440,7 @@ export interface ApiSetNotificationTimestampParams extends ApiParams {
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Breadinglistentries readinglistentries}**: Internal. List the pages of a certain list.
      */
     generator?:
+        | "abusereview"
         | "allcategories"
         | "alldeletedrevisions"
         | "allfileusages"
@@ -5842,6 +5913,7 @@ export interface TemplateDataApiTemplateDataParams extends ApiParams {
      *
      * **Note:** Generator parameter names must be prefixed with a "g", see examples.
      *
+     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Babusereview abusereview}**: List the edits that wait for review on {@link https://www.mediawiki.org/wiki/Special:AbuseReview Special:AbuseReview}.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Ballcategories allcategories}**: Enumerate all categories.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Balldeletedrevisions alldeletedrevisions}**: List all deleted revisions by a user or in a namespace.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Ballfileusages allfileusages}**: List all file usages, including non-existing.
@@ -5888,6 +5960,7 @@ export interface TemplateDataApiTemplateDataParams extends ApiParams {
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Breadinglistentries readinglistentries}**: Internal. List the pages of a certain list.
      */
     generator?:
+        | "abusereview"
         | "allcategories"
         | "alldeletedrevisions"
         | "allfileusages"
@@ -6204,11 +6277,11 @@ export interface ApiRemoveAuthenticationDataParams extends ApiParams {
  */
 export interface ApiUploadParams extends ApiParams {
     /**
-     * Target filename.
+     * Target filename. If not set, and `file` is used, then the filename from that will be used.
      */
     filename?: string;
     /**
-     * Upload comment. Also used as the initial page text for new files if `text` is not specified.
+     * Upload comment. Also used as the initial page text for new files if `text` is not set.
      *
      * Defaults to an empty string.
      */
@@ -6242,15 +6315,15 @@ export interface ApiUploadParams extends ApiParams {
      */
     ignorewarnings?: boolean;
     /**
-     * File contents.
+     * File contents and other details. You must supply either this or `filekey` or `url`.
      */
     file?: upload;
     /**
-     * URL to fetch the file from.
+     * URL to fetch the file from. You must supply either this or `file` or `filekey`.
      */
     url?: string;
     /**
-     * Key that identifies a previous upload that was stashed temporarily.
+     * Key that identifies a previous upload that was stashed temporarily. You must supply either this or `file` or `url`.
      */
     filekey?: string;
     /**
@@ -6283,6 +6356,16 @@ export interface ApiUploadParams extends ApiParams {
      * Only fetch the upload status for the given file key.
      */
     checkstatus?: boolean;
+    /**
+     * Generate the file description page wikitext server-side from `comment`, `license`, `copystatus` and `source`, overriding the `text` parameter. Extensions may alter the generated text via the UploadForm:getInitialPageText hook. `autotext` exists to allow `action=upload` to match the behavior of {@link https://www.mediawiki.org/wiki/Special:Upload Special:Upload} and the importImages maintenance script.
+     */
+    autotext?: boolean;
+    /**
+     * License selected for the upload. This is a template name. Only used together with `autotext` to generate the file description page wikitext.
+     *
+     * Defaults to an empty string.
+     */
+    license?: string;
     /**
      * A "csrf" token retrieved from {@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Btokens action=query&meta=tokens}
      *
@@ -6559,6 +6642,18 @@ export interface VisualEditorApiVisualEditorEditParams extends ApiParams {
      */
     plugins?: string | string[];
     /**
+     * Arbitrary data sent by a plugin with the API request.
+     *
+     * - **For the `ge-task-link-recommendation` plugin**: A JSON string of an object with these keys:
+     *
+     * - `acceptedTargets`: (optional) Array with the titles of pages, the recommended link to which was accepted by the user.
+     * - `rejectedTargets`: (optional) Array with the titles of pages, the recommended link to which was rejected by the user.
+     * - `skippedTargets`: (optional) Array with the titles of pages, the recommended link to which was skipped (ignored) by the user.
+     *
+     * - **For the `ge-task-revise-tone` plugin**: No data should be included for this plugin.
+     */
+    [k: `data-${string}`]: string;
+    /**
      * Whether the shown hCaptcha CAPTCHA was force shown, such as by an AbuseFilter extension consequence (and so used a more restrictive sitekey). Set this if the JS configuration variable with the same name is true or if the first attempt to use this API returned a 'forcecaptcha' error with a specified sitekey.
      */
     wgConfirmEditForceShowCaptcha?: boolean;
@@ -6566,6 +6661,12 @@ export interface VisualEditorApiVisualEditorEditParams extends ApiParams {
      * Return parse output in a format suitable for mobile devices.
      */
     mobileformat?: boolean;
+    /**
+     * Client Hints data that client side code sends with the request. For internal use only.
+     *
+     * Sensitive parameter.
+     */
+    checkuserclienthints?: string;
 }
 
 /**
@@ -6613,6 +6714,7 @@ export interface ApiWatchParams extends ApiParams {
      *
      * **Note:** Generator parameter names must be prefixed with a "g", see examples.
      *
+     * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Babusereview abusereview}**: List the edits that wait for review on {@link https://www.mediawiki.org/wiki/Special:AbuseReview Special:AbuseReview}.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Ballcategories allcategories}**: Enumerate all categories.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Balldeletedrevisions alldeletedrevisions}**: List all deleted revisions by a user or in a namespace.
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Ballfileusages allfileusages}**: List all file usages, including non-existing.
@@ -6659,6 +6761,7 @@ export interface ApiWatchParams extends ApiParams {
      * - **{@link https://www.mediawiki.org/wiki/Special:ApiHelp/query%2Breadinglistentries readinglistentries}**: Internal. List the pages of a certain list.
      */
     generator?:
+        | "abusereview"
         | "allcategories"
         | "alldeletedrevisions"
         | "allfileusages"
@@ -6732,10 +6835,8 @@ export interface OATHAuthApiWebAuthnParams extends ApiParams {
      * Name of the requested function to be executed.
      *
      * - **getAuthInfo**: Authentication information.
-     * - **getRegisterInfo**: Registration information.
-     * - **register**: Register a new WebAuthn credential for the current user.
      */
-    func?: "getAuthInfo" | "getRegisterInfo" | "register";
+    func?: "getAuthInfo";
     /**
      * Whether the key being registered is in passkey mode. (Only for getRegisterInfo.)
      */
@@ -6879,9 +6980,14 @@ export interface AbuseFilterApiQueryAbuseFiltersParams extends ApiQueryParams {
     /**
      * In which direction to enumerate:
      *
-     * Defaults to `newer`.
+     * - **ascending**: Enumerate filters in ascending order.
+     * - **descending**: Enumerate filters in descending order.
+     * - **newer**: Enumerate filters in ascending order.
+     * - **older**: Enumerate filters in descending order.
+     *
+     * Defaults to `ascending`.
      */
-    abfdir?: "newer" | "older";
+    abfdir?: "ascending" | "descending" | "newer" | "older";
     /**
      * Show only filters which meet these criteria.
      */
@@ -6890,10 +6996,12 @@ export interface AbuseFilterApiQueryAbuseFiltersParams extends ApiQueryParams {
         | "!enabled"
         | "!private"
         | "!protected"
+        | "!suppressed"
         | "deleted"
         | "enabled"
         | "private"
         | "protected"
+        | "suppressed"
     >;
     /**
      * The maximum number of filters to list.
@@ -6902,14 +7010,29 @@ export interface AbuseFilterApiQueryAbuseFiltersParams extends ApiQueryParams {
      */
     abflimit?: limit;
     /**
-     * Which properties to get.
+     * Which pieces of information to include:
      *
-     * Defaults to `id`, `description`, `actions`, and `status`.
+     * - **id**: Adds the filter ID.
+     * - **description**: Adds the filter description.
+     * - **pattern**: Adds the filter rules.
+     * - **actions**: Adds actions enabled for the filter.
+     * - **hits**: Adds the filter's hit counts.
+     * - **comments**: Adds comments (aka notes) for the filter.
+     * - **lasteditor**: Adds the name of the user who last edited the filter.
+     * - **lastedittime**: Adds a timestamp representing the date on which the filter was last edited.
+     * - **flags**: Adds information on the filter's status.
+     * - **status**: Deprecated. Use "flags" instead. Adds information on whether the filter is enabled and/or deleted.
+     * - **suppressed**: Deprecated. Use "flags" instead. Adds information on whether the filter is suppressed.
+     * - **private**: Deprecated. Use "flags" instead. Adds information on whether the filter is private.
+     * - **protected**: Deprecated. Use "flags" instead. Adds information on whether the filter is protected.
+     *
+     * Defaults to `id`, `description`, `actions`, and `flags`.
      */
     abfprop?: OneOrMore<
         | "actions"
         | "comments"
         | "description"
+        | "flags"
         | "hits"
         | "id"
         | "lasteditor"
@@ -6918,6 +7041,7 @@ export interface AbuseFilterApiQueryAbuseFiltersParams extends ApiQueryParams {
         | "private"
         | "protected"
         | "status"
+        | "suppressed"
     >;
 }
 
@@ -6977,6 +7101,103 @@ export interface AbuseFilterApiQueryAbuseLogParams extends ApiQueryParams {
         | "timestamp"
         | "title"
         | "user"
+    >;
+    /**
+     * When more results are available, use this to continue. More detailed information on how to continue queries {@link https://www.mediawiki.org/wiki/Special:MyLanguage/API:Continue can be found on mediawiki.org}.
+     */
+    aflcontinue?: string;
+}
+
+/**
+ * List the edits that wait for review on {@link https://www.mediawiki.org/wiki/Special:AbuseReview Special:AbuseReview}.
+ *
+ * Each request lists one tab of {@link https://www.mediawiki.org/wiki/Special:AbuseReview Special:AbuseReview}, chosen with `abrqueue`. You need the same rights as for that tab. By default you get what the tab shows: edits that still need a review, newest first, without edits from the last few minutes if the tab delays new edits.
+ */
+export interface WikimediaAntiAbuseApiQueryAbuseReviewParams extends ApiQueryParams {
+    /**
+     * Which tab of {@link https://www.mediawiki.org/wiki/Special:AbuseReview Special:AbuseReview} to list.
+     *
+     * - **mw-private-personal-info**: The Personal information tab: edits that likely contain personal information.
+     * - **mw-private-vandalism**: The Vandalism tab: edits that are likely vandalism.
+     * - **mw-private-link-spam**: The Link spam tab: edits that likely add link spam.
+     */
+    abrqueue?: "mw-private-link-spam" | "mw-private-personal-info" | "mw-private-vandalism";
+    /**
+     * Also list edits that no longer need a review: edits marked "no further action", and edits that were reverted, deleted or suppressed. Same as "Include handled revisions" on {@link https://www.mediawiki.org/wiki/Special:AbuseReview Special:AbuseReview}.
+     */
+    abrshowhandled?: boolean;
+    /**
+     * Also list edits marked as false positives. Same as "Include false positives" on {@link https://www.mediawiki.org/wiki/Special:AbuseReview Special:AbuseReview}.
+     */
+    abrshowfalsepositives?: boolean;
+    /**
+     * Also list edits from the last few minutes, which some tabs hide for a while. Same as the "Recent edits" filter on {@link https://www.mediawiki.org/wiki/Special:AbuseReview Special:AbuseReview}. The delay never applies to edits asked for with `abrrevid`.
+     */
+    abrshowrecent?: boolean;
+    /**
+     * Only list edits by these users.
+     */
+    abruser?: string | string[];
+    /**
+     * Only list edits to these pages.
+     */
+    abrpage?: string | string[];
+    /**
+     * Only list these revisions.
+     */
+    abrrevid?: number | number[];
+    /**
+     * The timestamp to start listing from.
+     */
+    abrstart?: timestamp;
+    /**
+     * The timestamp to stop listing at.
+     */
+    abrend?: timestamp;
+    /**
+     * In which direction to enumerate:
+     *
+     * - **newer**: List oldest first.
+     * - **older**: List newest first (default).
+     *
+     * Defaults to `older`.
+     */
+    abrdir?: "newer" | "older";
+    /**
+     * How many edits to list.
+     *
+     * Defaults to 10.
+     */
+    abrlimit?: limit;
+    /**
+     * When more results are available, use this to continue. More detailed information on how to continue queries {@link https://www.mediawiki.org/wiki/Special:MyLanguage/API:Continue can be found on mediawiki.org}.
+     */
+    abrcontinue?: string;
+    /**
+     * Which properties to get:
+     *
+     * - **ids**: Adds the revision ID and the ID of the parent revision. Adds `archived` if the page is deleted.
+     * - **title**: Adds the title of the page.
+     * - **timestamp**: Adds the time of the edit.
+     * - **user**: Adds the user who made the edit, and tells if the user is a temporary account or an IP address. If the user is hidden, adds `userhidden`. If it is hidden by suppression, also adds `suppressed`.
+     * - **userid**: Adds the ID of the user who made the edit. If the user is hidden, adds `userhidden`. If it is hidden by suppression, also adds `suppressed`.
+     * - **comment**: Adds the edit summary. If the edit summary is hidden, adds `commenthidden`. If it is hidden by suppression, also adds `suppressed`.
+     * - **tags**: Adds the tags of the edit.
+     * - **status**: Adds why the edit is listed: `unhandled` (it needs a review), `false-positive` or `no-further-action` (a reviewer gave this verdict), or `handled` (it was dealt with in another way). For `handled`, `handledreason` tells how: `reverted`, `revisiondeleted`, `pagedeleted` or `suppressed`.
+     * - **attribution**: Adds `attribution`: an HTML line that names the reviewer who recorded the verdict of the edit, or who last returned it to review. Left out if no reviewer can be named.
+     *
+     * Defaults to `ids`, `title`, and `timestamp`.
+     */
+    abrprop?: OneOrMore<
+        | "attribution"
+        | "comment"
+        | "ids"
+        | "status"
+        | "tags"
+        | "timestamp"
+        | "title"
+        | "user"
+        | "userid"
     >;
 }
 
@@ -7082,7 +7303,11 @@ export interface ApiQueryAllDeletedRevisionsParams extends ApiQueryParams {
     /**
      * Which revision slots to return data for, when slot-related properties are included in `adrprops`. If omitted, data from the `main` slot will be returned in a backwards-compatible format.
      */
-    adrslots?: OneOrMore<"main"> | "*";
+    adrslots?: string | string[] | "*";
+    /**
+     * Content serialization format used for output of content.
+     */
+    [k: `adrcontentformat-${string}`]: string;
     /**
      * Limit how many revisions will be returned. If `adrprop=content`, `adrprop=parsetree`, `adrdiffto` or `adrdifftotext` is used, the limit is 50. If `adrparse` is used, the limit is 1.
      */
@@ -7106,7 +7331,7 @@ export interface ApiQueryAllDeletedRevisionsParams extends ApiQueryParams {
      */
     adrparse?: boolean;
     /**
-     * Only retrieve the content of the section with this identifier.
+     * Only retrieve the content of the section with this identifier. A section identifier is either an integer section number (0 = lead, 1 = section starting with the first heading, etc.), or a string like T-1, in which case the section number is counted as if the page was being transcluded (e.g. a section wrapped in `<includeonly>` can only be identified in this mode).
      */
     adrsection?: string;
     /**
@@ -7688,7 +7913,11 @@ export interface ApiQueryAllRevisionsParams extends ApiQueryParams {
     /**
      * Which revision slots to return data for, when slot-related properties are included in `arvprops`. If omitted, data from the `main` slot will be returned in a backwards-compatible format.
      */
-    arvslots?: OneOrMore<"main"> | "*";
+    arvslots?: string | string[] | "*";
+    /**
+     * Content serialization format used for output of content.
+     */
+    [k: `arvcontentformat-${string}`]: string;
     /**
      * Limit how many revisions will be returned. If `arvprop=content`, `arvprop=parsetree`, `arvdiffto` or `arvdifftotext` is used, the limit is 50. If `arvparse` is used, the limit is 1.
      */
@@ -7712,7 +7941,7 @@ export interface ApiQueryAllRevisionsParams extends ApiQueryParams {
      */
     arvparse?: boolean;
     /**
-     * Only retrieve the content of the section with this identifier.
+     * Only retrieve the content of the section with this identifier. A section identifier is either an integer section number (0 = lead, 1 = section starting with the first heading, etc.), or a string like T-1, in which case the section number is counted as if the page was being transcluded (e.g. a section wrapped in `<includeonly>` can only be identified in this mode).
      */
     arvsection?: string;
     /**
@@ -8480,6 +8709,10 @@ export interface CirrusSearchApiQueryCirrusDocParams extends ApiQueryParams {
      * Defaults to `all`.
      */
     cdincludes?: string | string[];
+    /**
+     * Return a redirect page's own indexed document instead of tracing through to its target.
+     */
+    cdredirectscope?: boolean;
 }
 
 /**
@@ -8502,11 +8735,14 @@ export interface CommunityConfigurationApiQueryReadParams extends ApiQueryParams
      * Community configuration provider ID
      */
     ccrprovider?:
+        | "ArticleGuidance"
         | "Babel"
         | "BlockedDomain"
         | "CampaignEvents"
+        | "Cite-VisualEditor-Autonames"
         | "CommunityUpdates"
         | "ContentTranslation"
+        | "EditCheck"
         | "GrowthHomepage"
         | "GrowthMentorList"
         | "GrowthSuggestedEdits"
@@ -8802,7 +9038,11 @@ export interface ApiQueryDeletedRevisionsParams extends ApiQueryParams {
     /**
      * Which revision slots to return data for, when slot-related properties are included in `drvprops`. If omitted, data from the `main` slot will be returned in a backwards-compatible format.
      */
-    drvslots?: OneOrMore<"main"> | "*";
+    drvslots?: string | string[] | "*";
+    /**
+     * Content serialization format used for output of content.
+     */
+    [k: `drvcontentformat-${string}`]: string;
     /**
      * Limit how many revisions will be returned. If `drvprop=content`, `drvprop=parsetree`, `drvdiffto` or `drvdifftotext` is used, the limit is 50. If `drvparse` is used, the limit is 1.
      */
@@ -8826,7 +9066,7 @@ export interface ApiQueryDeletedRevisionsParams extends ApiQueryParams {
      */
     drvparse?: boolean;
     /**
-     * Only retrieve the content of the section with this identifier.
+     * Only retrieve the content of the section with this identifier. A section identifier is either an integer section number (0 = lead, 1 = section starting with the first heading, etc.), or a string like T-1, in which case the section number is counted as if the page was being transcluded (e.g. a section wrapped in `<includeonly>` can only be identified in this mode).
      */
     drvsection?: string;
     /**
@@ -9645,7 +9885,7 @@ export interface CentralAuthApiQueryGlobalAllUsersParams extends ApiQueryParams 
      */
     aguexcludegroup?: string | string[];
     /**
-     * What pieces of information to include:
+     * Which pieces of information to include:
      *
      * - **lockinfo**: Whether the user account is locked.
      * - **groups**: Lists global groups that the user is in. This uses more server resources and may return fewer results than the limit.
@@ -9669,7 +9909,7 @@ export interface CentralAuthApiQueryGlobalAllUsersParams extends ApiQueryParams 
 }
 
 /**
- * List all globally blocked IP addresses.
+ * List all globally blocked IP addresses and accounts. Note: Users that are locked using CentralAuth are not included in this list unless also globally blocked.
  */
 export interface GlobalBlockingApiQueryGlobalBlocksParams extends ApiQueryParams {
     /**
@@ -9721,11 +9961,20 @@ export interface GlobalBlockingApiQueryGlobalBlocksParams extends ApiQueryParams
      * - **expiry**: Adds the timestamp of when the global block expires.
      * - **reason**: Adds the reason given for the global block.
      * - **range**: Adds the range of IP addresses affected by the global block (not included if the block does not target IP addresses).
+     * - **localstatus**: Adds whether the global block has been disabled on this wiki (`disabled`) or not (`enabled`).
      *
      * Defaults to `id`, `target`, `by`, `timestamp`, `expiry`, and `reason`.
      */
     bgprop?: OneOrMore<
-        "by" | "expiry" | "id" | "range" | "reason" | "target" | "timestamp" | "address"
+        | "by"
+        | "expiry"
+        | "id"
+        | "localstatus"
+        | "range"
+        | "reason"
+        | "target"
+        | "timestamp"
+        | "address"
     >;
 }
 
@@ -9734,7 +9983,7 @@ export interface GlobalBlockingApiQueryGlobalBlocksParams extends ApiQueryParams
  */
 export interface CentralAuthApiQueryGlobalGroupsParams extends ApiQueryParams {
     /**
-     * What pieces of information to include.
+     * Which pieces of information to include.
      */
     ggpprop?: OneOrMore<"rights">;
 }
@@ -9756,6 +10005,50 @@ export interface GlobalPreferencesApiQueryGlobalPreferencesParams extends ApiQue
      * Defaults to `preferences` and `localoverrides`.
      */
     gprprop?: OneOrMore<"localoverrides" | "preferences">;
+}
+
+/**
+ * List requests in the global rename queue.
+ */
+export interface CentralAuthApiQueryGlobalRenameQueueParams extends ApiQueryParams {
+    /**
+     * Which queue to query: `open` for pending requests awaiting review, or `closed` for requests that have been approved or rejected.
+     */
+    grqqueue?: "closed" | "open";
+    /**
+     * Filter closed requests by status. Only used when `grqqueue` is `closed`.
+     *
+     * Defaults to `all`.
+     */
+    grqstatus?: "all" | "approved" | "rejected";
+    /**
+     * Filter by request type.
+     *
+     * Defaults to `all`.
+     */
+    grqtype?: "all" | "rename" | "vanish";
+    /**
+     * Filter by the name of the user who submitted the request.
+     */
+    grquser?: string;
+    /**
+     * Filter by the requested new username.
+     */
+    grqnewname?: string;
+    /**
+     * Filter by the name of the steward who processed the request.
+     */
+    grqperformer?: string;
+    /**
+     * How many requests to return.
+     *
+     * Defaults to 10.
+     */
+    grqlimit?: limit;
+    /**
+     * When more results are available, use this to continue. More detailed information on how to continue queries {@link https://www.mediawiki.org/wiki/Special:MyLanguage/API:Continue can be found on mediawiki.org}.
+     */
+    grqcontinue?: string;
 }
 
 /**
@@ -10057,6 +10350,10 @@ export interface GrowthExperimentsApiQueryGrowthTasksParams extends ApiQueryPara
      */
     gttopicsmode?: "AND" | "OR";
     /**
+     * Titles of articles that stand for the user's interests. Suggestions come from articles similar to them. Defaults to the user's stored interests. Cannot be combined with `gttopics`.
+     */
+    gtinterests?: string | string[];
+    /**
      * Maximum number of task suggestions to return.
      */
     gtlimit?: limit;
@@ -10064,6 +10361,10 @@ export interface GrowthExperimentsApiQueryGrowthTasksParams extends ApiQueryPara
      * When more results are available, use this to continue. More detailed information on how to continue queries {@link https://www.mediawiki.org/wiki/Special:MyLanguage/API:Continue can be found on mediawiki.org}.
      */
     gtoffset?: number;
+    /**
+     * Filter by the interests stored for the user, even when the suggestions for the user would otherwise follow their topic preferences. Ignored when `gtinterests` or `gttopics` is given.
+     */
+    gtuseinterests?: boolean;
     /**
      * Add debug data to the output.
      */
@@ -10703,7 +11004,7 @@ export interface LinterApiQueryLintErrorsParams extends ApiQueryParams {
     /**
      * Categories of lint errors
      *
-     * Defaults to `deletable-table-tag`, `duplicate-ids`, `html5-misnesting`, `misc-tidy-replacement-issues`, `multiline-html-table-in-list`, `multiple-unclosed-formatting-tags`, `pwrap-bug-workaround`, `self-closed-tag`, `template-arg-in-extension-tag`, `tidy-font-bug`, `tidy-whitespace-bug`, `unclosed-quotes-in-heading`, `bogus-image-options`, `fostered`, `misnested-tag`, `multi-colon-escape`, `wikilink-in-extlink`, `empty-heading`, `missing-end-tag`, `missing-end-tag-in-heading`, `night-mode-unaware-background-color`, `obsolete-tag`, and `stripped-tag`.
+     * Defaults to `deletable-table-tag`, `duplicate-ids`, `html5-misnesting`, `misc-tidy-replacement-issues`, `multiline-html-table-in-list`, `multiple-unclosed-formatting-tags`, `pwrap-bug-workaround`, `self-closed-tag`, `template-arg-in-extension-tag`, `tidy-font-bug`, `tidy-whitespace-bug`, `unclosed-quotes-in-heading`, `bogus-image-options`, `fostered`, `misnested-tag`, `multi-colon-escape`, `wikilink-in-extlink`, `empty-heading`, `missing-end-tag`, `missing-end-tag-in-heading`, `night-mode-unaware-background-color`, `obsolete-tag`, `pre-expansion`, and `stripped-tag`.
      */
     lntcategories?: OneOrMore<
         | "bogus-image-options"
@@ -10809,6 +11110,7 @@ export interface ApiQueryLogEventsParams extends ApiQueryParams {
         | "checkuser-temporary-account"
         | "contentmodel"
         | "create"
+        | "deferredblock"
         | "delete"
         | "gblblock"
         | "gblrename"
@@ -10859,6 +11161,9 @@ export interface ApiQueryLogEventsParams extends ApiQueryParams {
         | "contentmodel/change"
         | "contentmodel/new"
         | "create/create"
+        | "deferredblock/block"
+        | "deferredblock/reblock"
+        | "deferredblock/unblock"
         | "delete/delete"
         | "delete/delete_redir"
         | "delete/delete_redir2"
@@ -10909,12 +11214,14 @@ export interface ApiQueryLogEventsParams extends ApiQueryParams {
         | "massmessage/failure"
         | "massmessage/send"
         | "massmessage/skipbadns"
+        | "massmessage/skiplocked"
         | "massmessage/skipnouser"
         | "massmessage/skipoptout"
         | "merge/merge"
         | "merge/merge-into"
         | "move/move"
         | "move/move_redir"
+        | "mwoauthconsumer/authorize"
         | "newusers/autocreate"
         | "newusers/byemail"
         | "newusers/create"
@@ -10959,6 +11266,7 @@ export interface ApiQueryLogEventsParams extends ApiQueryParams {
         | "suppress/reblock"
         | "suppress/revision"
         | "suppress/setstatus"
+        | "suppress/unblock"
         | "suppress/unhide-afl"
         | "tag/update"
         | "thanks/*"
@@ -12049,7 +12357,11 @@ export interface ApiQueryRevisionsParams extends ApiQueryParams {
     /**
      * Which revision slots to return data for, when slot-related properties are included in `rvprops`. If omitted, data from the `main` slot will be returned in a backwards-compatible format.
      */
-    rvslots?: OneOrMore<"main"> | "*";
+    rvslots?: string | string[] | "*";
+    /**
+     * Content serialization format used for output of content.
+     */
+    [k: `rvcontentformat-${string}`]: string;
     /**
      * Limit how many revisions will be returned. If `rvprop=content`, `rvprop=parsetree`, `rvdiffto` or `rvdifftotext` is used, the limit is 50. If `rvparse` is used, the limit is 1.
      */
@@ -12073,7 +12385,7 @@ export interface ApiQueryRevisionsParams extends ApiQueryParams {
      */
     rvparse?: boolean;
     /**
-     * Only retrieve the content of the section with this identifier.
+     * Only retrieve the content of the section with this identifier. A section identifier is either an integer section number (0 = lead, 1 = section starting with the first heading, etc.), or a string like T-1, in which case the section number is counted as if the page was being transcluded (e.g. a section wrapped in `<includeonly>` can only be identified in this mode).
      */
     rvsection?: string;
     /**
@@ -13339,7 +13651,7 @@ export interface CentralAuthApiQueryWikiSetsParams extends ApiQueryParams {
      */
     wsfrom?: string;
     /**
-     * What pieces of information to include:
+     * Which pieces of information to include:
      *
      * - **type**: Opt-in based (includes only specified wikis) or opt-out based (includes all wikis except specified).
      * - **wikisincluded**: The wikis that are included in this wiki set.
