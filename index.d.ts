@@ -719,7 +719,23 @@ export interface ApiComparePagesParams extends ApiParams {
      *
      * This parameter specifies the slots that are to be modified. Use `fromtext-{slot}`, `fromcontentmodel-{slot}`, and `fromcontentformat-{slot}` to specify content for each slot.
      */
-    fromslots?: OneOrMore<"main">;
+    fromslots?: string | string[];
+    /**
+     * Text of the specified slot. If omitted, the slot is removed from the revision.
+     */
+    [k: `fromtext-${string}`]: string;
+    /**
+     * When `fromtext-{slot}` is the content of a single section, this is the section identifier. It will be merged into the revision specified by `fromtitle`, `fromid` or `fromrev` as if for a section edit.
+     */
+    [k: `fromsection-${string}`]: string;
+    /**
+     * Content serialization format of `fromtext-{slot}`.
+     */
+    [k: `fromcontentformat-${string}`]: string;
+    /**
+     * Content model of `fromtext-{slot}`. If not supplied, it will be guessed based on the other parameters.
+     */
+    [k: `fromcontentmodel-${string}`]: string;
     /**
      * Do a pre-save transform on `fromtext-{slot}`.
      */
@@ -769,7 +785,23 @@ export interface ApiComparePagesParams extends ApiParams {
      *
      * This parameter specifies the slots that are to be modified. Use `totext-{slot}`, `tocontentmodel-{slot}`, and `tocontentformat-{slot}` to specify content for each slot.
      */
-    toslots?: OneOrMore<"main">;
+    toslots?: string | string[];
+    /**
+     * Text of the specified slot. If omitted, the slot is removed from the revision.
+     */
+    [k: `totext-${string}`]: string;
+    /**
+     * When `totext-{slot}` is the content of a single section, this is the section identifier. It will be merged into the revision specified by `totitle`, `toid` or `torev` as if for a section edit.
+     */
+    [k: `tosection-${string}`]: string;
+    /**
+     * Content serialization format of `totext-{slot}`.
+     */
+    [k: `tocontentformat-${string}`]: string;
+    /**
+     * Content model of `totext-{slot}`. If not supplied, it will be guessed based on the other parameters.
+     */
+    [k: `tocontentmodel-${string}`]: string;
     /**
      * Do a pre-save transform on `totext`.
      */
@@ -1313,12 +1345,6 @@ export interface DiscussionToolsApiDiscussionToolsEditParams extends ApiParams {
      * - **addtopic**: Add a new discussion section and the first comment in it.
      */
     paction?: "addcomment" | "addtopic";
-    /**
-     * Automatically subscribe the user to the talk page thread?
-     *
-     * Defaults to `default`.
-     */
-    autosubscribe?: "default" | "no" | "yes";
     /**
      * The page to perform actions on.
      */
@@ -3703,7 +3729,7 @@ export interface PageTriageApiPageTriageStatsParams extends ApiParams {
      */
     show_predicted_issues_copyvio?: boolean;
     /**
-     * Whether to include only pages created by bots.
+     * Whether to include only pages created by bots.
      */
     showbots?: boolean;
     /**
@@ -3739,31 +3765,31 @@ export interface PageTriageApiPageTriageStatsParams extends ApiParams {
      */
     afc_state?: number;
     /**
-     * Whether to include only pages with no category.
+     * Whether to include only pages with no category.
      */
     no_category?: boolean;
     /**
-     * Whether to include only pages with no references.
+     * Whether to include only pages with no references.
      */
     unreferenced?: boolean;
     /**
-     * Whether to include only pages with no inbound links.
+     * Whether to include only pages with no inbound links.
      */
     no_inbound_links?: boolean;
     /**
-     * Whether to include only pages that were previously deleted.
+     * Whether to include only pages that were previously deleted.
      */
     recreated?: boolean;
     /**
-     * Whether to include only pages created by non-autoconfirmed users.
+     * Whether to include only pages created by non-autoconfirmed users.
      */
     non_autoconfirmed_users?: boolean;
     /**
-     * Whether to include only pages created by newly autoconfirmed users.
+     * Whether to include only pages created by newly autoconfirmed users.
      */
     learners?: boolean;
     /**
-     * Whether to include only pages created by blocked users.
+     * Whether to include only pages created by blocked users.
      */
     blocked_users?: boolean;
     /**
@@ -4091,6 +4117,7 @@ export interface ApiParseParams extends ApiParams {
      * - **properties**: Gives various properties defined in the parsed wikitext.
      * - **limitreportdata**: Gives the limit report in a structured way. Gives no data, when `disablelimitreport` is set.
      * - **limitreporthtml**: Gives the HTML version of the limit report. Gives no data, when `disablelimitreport` is set.
+     * - **parseroutput**: Internal. Gives the JSON-serialized `ParserOutput` object for the parsed content. The format of this property may change at any time; {@link https://www.mediawiki.org/wiki/Manual:Parser_cache/Serialization_compatibility mw:Manual:Parser cache/Serialization compatibility} does not provide any guarantee of API stability.
      * - **parsetree**: The XML parse tree of revision content (requires content model `wikitext`)
      * - **parsewarnings**: Gives the warnings that occurred while parsing content (as wikitext).
      * - **parsewarningshtml**: Gives the warnings that occurred while parsing content (as HTML).
@@ -4114,6 +4141,7 @@ export interface ApiParseParams extends ApiParams {
         | "limitreporthtml"
         | "links"
         | "modules"
+        | "parseroutput"
         | "parsetree"
         | "parsewarnings"
         | "parsewarningshtml"
@@ -6563,6 +6591,18 @@ export interface VisualEditorApiVisualEditorEditParams extends ApiParams {
      */
     plugins?: string | string[];
     /**
+     * Arbitrary data sent by a plugin with the API request.
+     *
+     * - **For the `ge-task-link-recommendation` plugin**: A JSON string of an object with these keys:
+     *
+     * - `acceptedTargets`: (optional) Array with the titles of pages, the recommended link to which was accepted by the user.
+     * - `rejectedTargets`: (optional) Array with the titles of pages, the recommended link to which was rejected by the user.
+     * - `skippedTargets`: (optional) Array with the titles of pages, the recommended link to which was skipped (ignored) by the user.
+     *
+     * - **For the `ge-task-revise-tone` plugin**: No data should be included for this plugin.
+     */
+    [k: `data-${string}`]: string;
+    /**
      * Whether the shown hCaptcha CAPTCHA was force shown, such as by an AbuseFilter extension consequence (and so used a more restrictive sitekey). Set this if the JS configuration variable with the same name is true or if the first attempt to use this API returned a 'forcecaptcha' error with a specified sitekey.
      */
     wgConfirmEditForceShowCaptcha?: boolean;
@@ -7086,7 +7126,11 @@ export interface ApiQueryAllDeletedRevisionsParams extends ApiQueryParams {
     /**
      * Which revision slots to return data for, when slot-related properties are included in `adrprops`. If omitted, data from the `main` slot will be returned in a backwards-compatible format.
      */
-    adrslots?: OneOrMore<"main">;
+    adrslots?: string | string[];
+    /**
+     * Content serialization format used for output of content.
+     */
+    [k: `adrcontentformat-${string}`]: string;
     /**
      * Limit how many revisions will be returned. If `adrprop=content`, `adrprop=parsetree`, `adrdiffto` or `adrdifftotext` is used, the limit is 50. If `adrparse` is used, the limit is 1.
      */
@@ -7298,6 +7342,7 @@ export interface ApiQueryAllImagesParams extends ApiQueryParams {
      * - **dimensions**: Alias for size.
      * - **sha1**: Adds SHA-1 hash for the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **mime**: Adds MIME type of the file. If the file has been revision deleted, a `filehidden` property will be returned.
+     * - **thumburls**: Adds thumbnail URLs of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **mediatype**: Adds the media type of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **metadata**: Lists Exif metadata for the version of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **commonmetadata**: Lists file format generic metadata for the version of the file. If the file has been revision deleted, a `filehidden` property will be returned.
@@ -7323,6 +7368,7 @@ export interface ApiQueryAllImagesParams extends ApiQueryParams {
         | "parsedcomment"
         | "sha1"
         | "size"
+        | "thumburls"
         | "timestamp"
         | "url"
         | "user"
@@ -7690,7 +7736,11 @@ export interface ApiQueryAllRevisionsParams extends ApiQueryParams {
     /**
      * Which revision slots to return data for, when slot-related properties are included in `arvprops`. If omitted, data from the `main` slot will be returned in a backwards-compatible format.
      */
-    arvslots?: OneOrMore<"main">;
+    arvslots?: string | string[];
+    /**
+     * Content serialization format used for output of content.
+     */
+    [k: `arvcontentformat-${string}`]: string;
     /**
      * Limit how many revisions will be returned. If `arvprop=content`, `arvprop=parsetree`, `arvdiffto` or `arvdifftotext` is used, the limit is 50. If `arvparse` is used, the limit is 1.
      */
@@ -8804,7 +8854,11 @@ export interface ApiQueryDeletedRevisionsParams extends ApiQueryParams {
     /**
      * Which revision slots to return data for, when slot-related properties are included in `drvprops`. If omitted, data from the `main` slot will be returned in a backwards-compatible format.
      */
-    drvslots?: OneOrMore<"main">;
+    drvslots?: string | string[];
+    /**
+     * Content serialization format used for output of content.
+     */
+    [k: `drvcontentformat-${string}`]: string;
     /**
      * Limit how many revisions will be returned. If `drvprop=content`, `drvprop=parsetree`, `drvdiffto` or `drvdifftotext` is used, the limit is 50. If `drvparse` is used, the limit is 1.
      */
@@ -10097,6 +10151,7 @@ export interface ApiQueryImageInfoParams extends ApiQueryParams {
      * - **sha1**: Adds SHA-1 hash for the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **mime**: Adds MIME type of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **thumbmime**: Adds MIME type of the image thumbnail (requires url and param iiurlwidth). If the file has been revision deleted, a `filehidden` property will be returned.
+     * - **thumburls**: Adds thumbnail URLs of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **mediatype**: Adds the media type of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **metadata**: Lists Exif metadata for the version of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **commonmetadata**: Lists file format generic metadata for the version of the file. If the file has been revision deleted, a `filehidden` property will be returned.
@@ -10126,6 +10181,7 @@ export interface ApiQueryImageInfoParams extends ApiQueryParams {
         | "sha1"
         | "size"
         | "thumbmime"
+        | "thumburls"
         | "timestamp"
         | "uploadwarning"
         | "url"
@@ -12049,7 +12105,11 @@ export interface ApiQueryRevisionsParams extends ApiQueryParams {
     /**
      * Which revision slots to return data for, when slot-related properties are included in `rvprops`. If omitted, data from the `main` slot will be returned in a backwards-compatible format.
      */
-    rvslots?: OneOrMore<"main">;
+    rvslots?: string | string[];
+    /**
+     * Content serialization format used for output of content.
+     */
+    [k: `rvcontentformat-${string}`]: string;
     /**
      * Limit how many revisions will be returned. If `rvprop=content`, `rvprop=parsetree`, `rvdiffto` or `rvdifftotext` is used, the limit is 50. If `rvparse` is used, the limit is 1.
      */
@@ -12331,6 +12391,7 @@ export interface ApiQuerySiteinfoParams extends ApiQueryParams {
      * - **autopromote**: Returns the automatic promotion configuration.
      * - **autopromoteonce**: Returns the automatic promotion configuration that are only done once.
      * - **copyuploaddomains**: Returns the list of allowed copy upload domains
+     * - **crosssiteajaxdomains**: Returns the list of allowed CORS domains
      * - **sbom**: Returns a Software Bill of Materials (SBOM) for the MediaWiki installation in the CycloneDX 1.6 format.
      *
      * Defaults to `general`.
@@ -12341,6 +12402,7 @@ export interface ApiQuerySiteinfoParams extends ApiQueryParams {
         | "autopromoteonce"
         | "clientlibraries"
         | "copyuploaddomains"
+        | "crosssiteajaxdomains"
         | "dbrepllag"
         | "defaultoptions"
         | "doubleunderscores"
@@ -12438,6 +12500,7 @@ export interface ApiQueryStashImageInfoParams extends ApiQueryParams {
      * - **sha1**: Adds SHA-1 hash for the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **mime**: Adds MIME type of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **thumbmime**: Adds MIME type of the image thumbnail (requires url and param siiurlwidth). If the file has been revision deleted, a `filehidden` property will be returned.
+     * - **thumburls**: Adds thumbnail URLs of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **metadata**: Lists Exif metadata for the version of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **commonmetadata**: Lists file format generic metadata for the version of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **extmetadata**: Lists formatted metadata combined from multiple sources. Results are HTML formatted. If the file has been revision deleted, a `filehidden` property will be returned.
@@ -12460,6 +12523,7 @@ export interface ApiQueryStashImageInfoParams extends ApiQueryParams {
         | "sha1"
         | "size"
         | "thumbmime"
+        | "thumburls"
         | "timestamp"
         | "url"
     >;
@@ -12925,6 +12989,7 @@ export interface TimedMediaHandlerApiQueryVideoInfoParams extends ApiQueryParams
      * - **sha1**: Adds SHA-1 hash for the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **mime**: Adds MIME type of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **thumbmime**: Adds MIME type of the image thumbnail (requires url and param viurlwidth). If the file has been revision deleted, a `filehidden` property will be returned.
+     * - **thumburls**: Adds thumbnail URLs of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **mediatype**: Adds the media type of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **metadata**: Lists Exif metadata for the version of the file. If the file has been revision deleted, a `filehidden` property will be returned.
      * - **commonmetadata**: Lists file format generic metadata for the version of the file. If the file has been revision deleted, a `filehidden` property will be returned.
@@ -12957,6 +13022,7 @@ export interface TimedMediaHandlerApiQueryVideoInfoParams extends ApiQueryParams
         | "sha1"
         | "size"
         | "thumbmime"
+        | "thumburls"
         | "timedtext"
         | "timestamp"
         | "uploadwarning"
