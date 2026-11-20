@@ -63,10 +63,6 @@ export interface ApiParams extends UnknownApiParams {
     formatversion?: "1" | "2" | "latest";
 }
 
-export {};
-
-// AUTOMATICALLY GENERATED FROM HERE:
-
 /**
  * Check to see if an AbuseFilter matches a set of variables, an edit, or a logged AbuseFilter event.
  *
@@ -13669,3 +13665,5 @@ export interface CentralAuthApiQueryWikiSetsParams extends ApiQueryParams {
      */
     wsorderbyname?: boolean;
 }
+
+export {};
